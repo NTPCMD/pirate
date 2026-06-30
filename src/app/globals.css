@@ -1,0 +1,1025 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-pirata);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* pirate themed tokens */
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-ocean: var(--ocean);
+  --color-ocean-foreground: var(--ocean-foreground);
+  --color-rust: var(--rust);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.75rem;
+  /* Pirate Treasure light theme — warm parchment + gold + ocean teal */
+  --background: oklch(0.97 0.015 85);
+  --foreground: oklch(0.22 0.03 60);
+  --card: oklch(0.99 0.012 85);
+  --card-foreground: oklch(0.22 0.03 60);
+  --popover: oklch(0.99 0.012 85);
+  --popover-foreground: oklch(0.22 0.03 60);
+  --primary: oklch(0.46 0.13 195);
+  --primary-foreground: oklch(0.99 0.01 85);
+  --secondary: oklch(0.93 0.03 75);
+  --secondary-foreground: oklch(0.28 0.04 60);
+  --muted: oklch(0.93 0.015 80);
+  --muted-foreground: oklch(0.42 0.03 70);
+  --accent: oklch(0.88 0.06 80);
+  --accent-foreground: oklch(0.3 0.05 60);
+  --destructive: oklch(0.55 0.21 28);
+  --border: oklch(0.88 0.025 75);
+  --input: oklch(0.9 0.02 78);
+  --ring: oklch(0.5 0.12 195);
+  --chart-1: oklch(0.62 0.16 195);
+  --chart-2: oklch(0.7 0.15 80);
+  --chart-3: oklch(0.55 0.18 28);
+  --chart-4: oklch(0.6 0.15 145);
+  --chart-5: oklch(0.55 0.2 300);
+  --sidebar: oklch(0.97 0.015 85);
+  --sidebar-foreground: oklch(0.22 0.03 60);
+  --sidebar-primary: oklch(0.46 0.13 195);
+  --sidebar-primary-foreground: oklch(0.99 0.01 85);
+  --sidebar-accent: oklch(0.93 0.03 75);
+  --sidebar-accent-foreground: oklch(0.28 0.04 60);
+  --sidebar-border: oklch(0.88 0.025 75);
+  --sidebar-ring: oklch(0.5 0.12 195);
+  /* pirate extras — green & white theme by Mr Stephen Corcoran */
+  --gold: oklch(0.55 0.17 155);
+  --gold-foreground: oklch(0.99 0.005 155);
+  /* darker green used for text on light backgrounds — WCAG AA compliant */
+  --gold-strong: oklch(0.42 0.16 150);
+  --gold-ink: oklch(0.35 0.14 148);
+  --ocean: oklch(0.45 0.12 200);
+  --ocean-foreground: oklch(0.99 0.005 155);
+  --rust: oklch(0.55 0.17 38);
+}
+
+.dark {
+  /* Deep night-ocean dark theme */
+  --background: oklch(0.16 0.025 235);
+  --foreground: oklch(0.94 0.02 85);
+  --card: oklch(0.21 0.03 235);
+  --card-foreground: oklch(0.94 0.02 85);
+  --popover: oklch(0.21 0.03 235);
+  --popover-foreground: oklch(0.94 0.02 85);
+  --primary: oklch(0.7 0.15 195);
+  --primary-foreground: oklch(0.16 0.03 235);
+  --secondary: oklch(0.27 0.035 230);
+  --secondary-foreground: oklch(0.94 0.02 85);
+  --muted: oklch(0.25 0.03 232);
+  --muted-foreground: oklch(0.7 0.025 80);
+  --accent: oklch(0.32 0.06 80);
+  --accent-foreground: oklch(0.95 0.03 85);
+  --destructive: oklch(0.65 0.2 25);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.6 0.13 195);
+  --chart-1: oklch(0.62 0.16 195);
+  --chart-2: oklch(0.78 0.16 85);
+  --chart-3: oklch(0.6 0.2 28);
+  --chart-4: oklch(0.6 0.16 145);
+  --chart-5: oklch(0.62 0.22 300);
+  --sidebar: oklch(0.19 0.03 235);
+  --sidebar-foreground: oklch(0.94 0.02 85);
+  --sidebar-primary: oklch(0.7 0.15 195);
+  --sidebar-primary-foreground: oklch(0.16 0.03 235);
+  --sidebar-accent: oklch(0.27 0.035 230);
+  --sidebar-accent-foreground: oklch(0.94 0.02 85);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.6 0.13 195);
+  --gold: oklch(0.65 0.2 150);
+  --gold-foreground: oklch(0.15 0.04 155);
+  /* dark theme green — vivid and readable */
+  --gold-strong: oklch(0.65 0.2 150);
+  --gold-ink: oklch(0.78 0.18 150);
+  --ocean: oklch(0.52 0.14 200);
+  --ocean-foreground: oklch(0.99 0.005 155);
+  --rust: oklch(0.62 0.18 38);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(circle at 15% 20%, color-mix(in oklch, var(--ocean) 8%, transparent) 0, transparent 40%),
+      radial-gradient(circle at 85% 80%, color-mix(in oklch, var(--gold) 7%, transparent) 0, transparent 40%);
+    background-attachment: fixed;
+  }
+  .dark body {
+    background-image:
+      radial-gradient(circle at 15% 20%, color-mix(in oklch, var(--ocean) 14%, transparent) 0, transparent 45%),
+      radial-gradient(circle at 85% 80%, color-mix(in oklch, var(--gold) 9%, transparent) 0, transparent 45%);
+  }
+  /* Subtle button press feedback — global, GPU-friendly (transform only).
+     Framer-motion whileTap inline transforms win where they are set. */
+  button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Pirate game component utilities
+   -------------------------------------------------------------------------- */
+
+@layer components {
+  .pirate-card {
+    @apply rounded-xl border border-border bg-card/90 backdrop-blur-sm shadow-sm;
+    transition: box-shadow 220ms ease, border-color 220ms ease, transform 220ms ease;
+  }
+  .pirate-card-hover:hover {
+    border-color: color-mix(in oklch, var(--gold) 45%, var(--border));
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--gold) 35%, transparent),
+      0 8px 32px color-mix(in oklch, var(--gold) 18%, transparent),
+      0 2px 8px rgba(0, 0, 0, 0.18);
+  }
+  .pirate-panel {
+    @apply rounded-xl border border-border/70 bg-card/70 backdrop-blur-sm;
+  }
+  .gold-text {
+    color: var(--gold-strong);
+    /* Light mode: subtle dark drop shadow for contrast against parchment */
+    text-shadow:
+      0 1px 1px rgba(40, 28, 6, 0.18),
+      0 0 1px color-mix(in oklch, var(--gold-strong) 50%, transparent);
+  }
+  .dark .gold-text {
+    color: var(--gold);
+    text-shadow:
+      0 1px 0 color-mix(in oklch, var(--gold) 40%, transparent),
+      0 0 12px color-mix(in oklch, var(--gold) 35%, transparent);
+  }
+  /* Strong variant — for body-weight gold text (scores, labels) where the
+     surrounding tint is lighter than for headings. */
+  .gold-text-strong {
+    color: var(--gold-ink);
+    text-shadow: 0 1px 1px rgba(40, 28, 6, 0.22);
+  }
+  .dark .gold-text-strong {
+    color: var(--gold);
+    text-shadow: 0 0 10px color-mix(in oklch, var(--gold) 35%, transparent);
+  }
+  .display-font {
+    font-family: var(--font-display), var(--font-sans), serif;
+    letter-spacing: 0.02em;
+  }
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 40%, transparent) transparent;
+  }
+  .scroll-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+    border-radius: 999px;
+  }
+  .scroll-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* ---- Treasure-map board tiles ----------------------------------------- */
+  .treasure-tile {
+    background-image:
+      radial-gradient(circle at 30% 25%, color-mix(in oklch, var(--gold) 10%, transparent) 0, transparent 55%),
+      radial-gradient(circle at 75% 80%, color-mix(in oklch, var(--rust) 8%, transparent) 0, transparent 50%),
+      repeating-linear-gradient(
+        135deg,
+        color-mix(in oklch, var(--muted-foreground) 5%, transparent) 0,
+        color-mix(in oklch, var(--muted-foreground) 5%, transparent) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, white 8%, transparent),
+      inset 0 -2px 4px color-mix(in oklch, black 25%, transparent);
+  }
+  .treasure-tile-watermark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0.16;
+    font-size: 1.05em;
+    color: var(--muted-foreground);
+    font-family: var(--font-display), serif;
+    user-select: none;
+  }
+  .treasure-tile-revealable {
+    background-image:
+      radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--gold) 28%, transparent) 0, transparent 60%),
+      radial-gradient(circle at 30% 25%, color-mix(in oklch, var(--gold) 14%, transparent) 0, transparent 50%),
+      repeating-linear-gradient(
+        135deg,
+        color-mix(in oklch, var(--gold) 10%, transparent) 0,
+        color-mix(in oklch, var(--gold) 10%, transparent) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, var(--gold) 40%, transparent),
+      inset 0 -2px 6px color-mix(in oklch, var(--gold) 25%, transparent),
+      0 0 14px color-mix(in oklch, var(--gold) 40%, transparent);
+  }
+  .treasure-tile-clickable {
+    cursor: pointer;
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+  .treasure-tile-clickable:hover {
+    transform: translateY(-2px) scale(1.04);
+    border-color: color-mix(in oklch, var(--gold) 65%, var(--border));
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, white 10%, transparent),
+      inset 0 -2px 4px color-mix(in oklch, black 25%, transparent),
+      0 4px 12px color-mix(in oklch, var(--gold) 30%, transparent);
+    z-index: 5;
+  }
+
+  /* ---- Revealed cash squares: 3D coin ----------------------------------- */
+  .coin-3d {
+    background-image:
+      radial-gradient(circle at 35% 30%, color-mix(in oklch, white 50%, transparent) 0, transparent 45%),
+      radial-gradient(circle at 50% 60%, color-mix(in oklch, var(--gold) 25%, transparent) 0, transparent 60%);
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, white 35%, transparent),
+      inset 0 -2px 4px color-mix(in oklch, black 25%, transparent),
+      0 2px 4px color-mix(in oklch, black 20%, transparent);
+  }
+  .coin-glow {
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklch, white 45%, transparent),
+      inset 0 -2px 4px color-mix(in oklch, black 20%, transparent),
+      0 0 14px color-mix(in oklch, var(--gold) 60%, transparent),
+      0 0 26px color-mix(in oklch, var(--gold) 35%, transparent);
+  }
+  .coin-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .coin-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      100deg,
+      transparent 30%,
+      color-mix(in oklch, white 75%, transparent) 50%,
+      transparent 70%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-slide 2.4s linear infinite;
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+
+  /* ---- Power square auras ----------------------------------------------- */
+  .power-aura-negative {
+    box-shadow:
+      inset 0 0 8px color-mix(in oklch, var(--destructive) 30%, transparent),
+      0 0 14px color-mix(in oklch, var(--destructive) 35%, transparent);
+    animation: power-menace 1.8s ease-in-out infinite;
+  }
+  .power-aura-defensive {
+    box-shadow:
+      inset 0 0 8px color-mix(in oklch, var(--ocean) 30%, transparent),
+      0 0 14px color-mix(in oklch, var(--ocean) 40%, transparent);
+    animation: power-ward 2.2s ease-in-out infinite;
+  }
+  .power-aura-epic {
+    box-shadow:
+      inset 0 0 8px color-mix(in oklch, var(--gold) 35%, transparent),
+      0 0 16px color-mix(in oklch, var(--gold) 50%, transparent);
+    animation: power-epic 2s ease-in-out infinite;
+  }
+
+  /* ---- Reveal sparkle burst --------------------------------------------- */
+  .sparkle-burst::before,
+  .sparkle-burst::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 50% 50%, color-mix(in oklch, white 80%, transparent) 0, transparent 18%),
+      radial-gradient(circle at 20% 20%, color-mix(in oklch, var(--gold) 90%, transparent) 0, transparent 12%),
+      radial-gradient(circle at 80% 80%, color-mix(in oklch, var(--gold) 90%, transparent) 0, transparent 12%),
+      radial-gradient(circle at 80% 20%, color-mix(in oklch, white 70%, transparent) 0, transparent 10%),
+      radial-gradient(circle at 20% 80%, color-mix(in oklch, white 70%, transparent) 0, transparent 10%);
+    animation: sparkle-burst 0.7s ease-out forwards;
+    opacity: 0;
+  }
+  .sparkle-burst::after {
+    animation-delay: 0.18s;
+  }
+
+  /* ---- MoneyPill variants ----------------------------------------------- */
+  .money-at-risk {
+    position: relative;
+    animation: at-risk-pulse 2.2s ease-in-out infinite;
+  }
+  .money-banked {
+    position: relative;
+    background-image:
+      radial-gradient(circle at 50% 35%, color-mix(in oklch, var(--ocean) 18%, transparent) 0, transparent 60%),
+      repeating-linear-gradient(45deg, color-mix(in oklch, var(--ocean) 6%, transparent) 0, color-mix(in oklch, var(--ocean) 6%, transparent) 2px, transparent 2px, transparent 6px);
+  }
+  .money-flash-gain {
+    animation: money-gain 0.7s ease-out;
+  }
+  .money-flash-loss {
+    animation: money-loss 0.7s ease-out;
+  }
+
+  /* ---- Pirate buttons --------------------------------------------------- */
+  .btn-pirate {
+    transition: transform 180ms ease, box-shadow 220ms ease, background-color 180ms ease, border-color 180ms ease;
+  }
+  .btn-pirate:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px color-mix(in oklch, var(--gold) 18%, transparent), 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+  .btn-pirate:not(:disabled):active {
+    transform: translateY(0) scale(0.97);
+  }
+  .btn-copy-ripple {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-copy-ripple::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at center, color-mix(in oklch, var(--gold) 50%, transparent) 0, transparent 60%);
+    transform: scale(0);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .btn-copy-ripple.btn-copy-rippling::after {
+    animation: copy-ripple 0.55s ease-out;
+  }
+
+  /* ---- Power chip float (inventory) ------------------------------------- */
+  .inventory-chip {
+    animation: inventory-float 3.4s ease-in-out infinite;
+  }
+
+  /* ---- Parchment scroll aesthetic --------------------------------------- */
+  .parchment-scroll {
+    background-image:
+      radial-gradient(circle at 20% 10%, color-mix(in oklch, var(--gold) 7%, transparent) 0, transparent 45%),
+      radial-gradient(circle at 80% 90%, color-mix(in oklch, var(--rust) 5%, transparent) 0, transparent 40%),
+      repeating-linear-gradient(0deg, color-mix(in oklch, var(--muted-foreground) 4%, transparent) 0, color-mix(in oklch, var(--muted-foreground) 4%, transparent) 1px, transparent 1px, transparent 6px);
+  }
+  .activity-row-new {
+    animation: activity-highlight 1.2s ease-out;
+  }
+
+  /* ---- Dramatic coordinate display -------------------------------------- */
+  .coord-dramatic {
+    /* Light mode: darker gold for legibility, mild glow */
+    color: var(--gold-ink);
+    text-shadow:
+      0 1px 2px rgba(40, 28, 6, 0.28),
+      0 0 10px color-mix(in oklch, var(--gold-strong) 40%, transparent);
+    animation: coord-glow-light 1.6s ease-in-out infinite;
+  }
+  .dark .coord-dramatic {
+    color: var(--gold);
+    text-shadow:
+      0 0 8px color-mix(in oklch, var(--gold) 70%, transparent),
+      0 0 18px color-mix(in oklch, var(--gold) 50%, transparent),
+      0 2px 4px rgba(0, 0, 0, 0.4);
+    animation: coord-glow 1.6s ease-in-out infinite;
+  }
+
+  /* ---- Title styling ---------------------------------------------------- */
+  .title-pirate {
+    text-shadow:
+      0 0 12px color-mix(in oklch, var(--gold) 40%, transparent),
+      0 2px 4px rgba(0, 0, 0, 0.5),
+      0 4px 8px color-mix(in oklch, var(--gold) 25%, transparent);
+    animation: title-sway 7s ease-in-out infinite;
+    transform-origin: 50% 80%;
+  }
+
+  /* ---- Decorative divider ----------------------------------------------- */
+  .divider-pirate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: color-mix(in oklch, var(--gold) 80%, transparent);
+  }
+  .divider-pirate::before,
+  .divider-pirate::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--gold) 50%, transparent), transparent);
+    max-width: 80px;
+  }
+
+  /* ---- Ocean waves at bottom of screen ---------------------------------- */
+  .ocean-waves-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 64px;
+    pointer-events: none;
+    opacity: 0.55;
+    background-image:
+      radial-gradient(ellipse at 50% 100%, color-mix(in oklch, var(--ocean) 28%, transparent) 0, transparent 70%),
+      repeating-linear-gradient(
+        90deg,
+        color-mix(in oklch, var(--ocean) 32%, transparent) 0,
+        color-mix(in oklch, var(--ocean) 32%, transparent) 12px,
+        transparent 12px,
+        transparent 24px
+      );
+    background-size: auto, 240px 100%;
+    background-position: center bottom, 0 0;
+    animation: wave-sweep 6s linear infinite;
+  }
+  .ocean-waves-bottom::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 16px;
+    background: linear-gradient(180deg, transparent, color-mix(in oklch, var(--ocean) 50%, transparent));
+  }
+
+  /* ---- Ship sailing animation ------------------------------------------- */
+  .ship-sail {
+    animation: ship-bob 3.2s ease-in-out infinite;
+    transform-origin: 50% 90%;
+  }
+
+  /* ---- Map-pin bounce --------------------------------------------------- */
+  .pin-bounce {
+    animation: pin-bounce 1.4s ease-in-out infinite;
+  }
+
+  /* ---- Treasure chest bob ----------------------------------------------- */
+  .chest-bob {
+    animation: chest-bob 2.8s ease-in-out infinite;
+  }
+
+  /* ---- Leaderboard crown / medal animations ----------------------------- */
+  /* 1st place — gold crown floats gently + gold glow */
+  .crown-glow {
+    color: var(--gold-strong);
+    filter: drop-shadow(0 1px 2px rgba(40, 28, 6, 0.25))
+            drop-shadow(0 0 6px color-mix(in oklch, var(--gold) 60%, transparent));
+    animation: crown-float 2s ease-in-out infinite;
+  }
+  .dark .crown-glow {
+    color: var(--gold);
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5))
+            drop-shadow(0 0 8px color-mix(in oklch, var(--gold) 75%, transparent));
+  }
+  /* 2nd + 3rd place — silver / bronze medals with a subtle shimmer sweep */
+  .medal-silver {
+    color: oklch(0.62 0.02 250);
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+    animation: medal-shimmer 2.4s ease-in-out infinite;
+  }
+  .dark .medal-silver {
+    color: oklch(0.78 0.015 250);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+  }
+  .medal-bronze {
+    color: oklch(0.55 0.09 55);
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+    animation: medal-shimmer 2.4s ease-in-out infinite 0.4s;
+  }
+  .dark .medal-bronze {
+    color: oklch(0.7 0.12 55);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+  }
+
+  /* ---- Podium spotlight (1st place) ------------------------------------- */
+  .podium-spotlight {
+    position: relative;
+  }
+  .podium-spotlight::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -20%;
+    width: 220%;
+    height: 180%;
+    transform: translateX(-50%);
+    background: radial-gradient(
+      ellipse at 50% 35%,
+      color-mix(in oklch, var(--gold) 35%, transparent) 0%,
+      color-mix(in oklch, var(--gold) 12%, transparent) 35%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+    animation: spotlight-pulse 3.2s ease-in-out infinite;
+  }
+  .dark .podium-spotlight::before {
+    background: radial-gradient(
+      ellipse at 50% 35%,
+      color-mix(in oklch, var(--gold) 30%, transparent) 0%,
+      color-mix(in oklch, var(--gold) 10%, transparent) 40%,
+      transparent 75%
+    );
+  }
+
+  /* ---- Pulsing gold ring around 1st place avatar ----------------------- */
+  .pulse-gold-ring {
+    box-shadow:
+      0 0 0 0 color-mix(in oklch, var(--gold) 70%, transparent),
+      0 0 14px color-mix(in oklch, var(--gold) 50%, transparent);
+    animation: pulse-gold-ring 1.8s ease-out infinite;
+  }
+
+  /* ---- Metallic rank labels (1ST / 2ND / 3RD) -------------------------- */
+  .label-gold-metal,
+  .label-silver-metal,
+  .label-bronze-metal {
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+  .label-gold-metal {
+    background-image: linear-gradient(180deg,
+      oklch(0.92 0.13 85) 0%,
+      oklch(0.7 0.16 80) 45%,
+      oklch(0.55 0.14 75) 70%,
+      oklch(0.82 0.16 85) 100%);
+  }
+  .label-silver-metal {
+    background-image: linear-gradient(180deg,
+      oklch(0.92 0.01 250) 0%,
+      oklch(0.7 0.015 250) 45%,
+      oklch(0.5 0.02 250) 70%,
+      oklch(0.82 0.01 250) 100%);
+  }
+  .label-bronze-metal {
+    background-image: linear-gradient(180deg,
+      oklch(0.8 0.1 65) 0%,
+      oklch(0.62 0.11 55) 45%,
+      oklch(0.45 0.09 50) 70%,
+      oklch(0.72 0.11 55) 100%);
+  }
+
+  /* ---- Confetti pieces for podium backdrop ------------------------------ */
+  .confetti-piece {
+    position: absolute;
+    top: -16px;
+    width: 8px;
+    height: 14px;
+    border-radius: 2px;
+    opacity: 0;
+    animation: confetti-fall linear infinite;
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+
+  /* ---- Board reveal sweep (screen-edge gold flash from board outward) --- */
+  .board-reveal-flash::after {
+    content: '';
+    position: absolute;
+    inset: -12px;
+    pointer-events: none;
+    border-radius: inherit;
+    background: radial-gradient(
+      ellipse at center,
+      color-mix(in oklch, var(--gold) 50%, transparent) 0%,
+      color-mix(in oklch, var(--gold) 18%, transparent) 35%,
+      transparent 70%
+    );
+    opacity: 0;
+    animation: reveal-sweep 0.7s ease-out forwards;
+    z-index: 2;
+  }
+
+  /* ---- Board cell hover tooltip (CSS-only) ------------------------------ */
+  .cell-tooltip {
+    position: relative;
+  }
+  /* When the tooltip is visible, allow overflow so the ::before (positioned
+     above the cell) isn't clipped by the cell's overflow-hidden utility.
+     Higher-specificity selector beats .overflow-hidden (0,1,0). */
+  .cell-tooltip[data-coord]:hover,
+  .cell-tooltip[data-coord]:focus-visible {
+    overflow: visible !important;
+  }
+  .cell-tooltip[data-coord]:hover::before,
+  .cell-tooltip[data-coord]:focus-visible::before {
+    content: attr(data-coord);
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%) translateY(2px);
+    background: color-mix(in oklch, var(--card) 92%, transparent);
+    color: var(--gold-strong);
+    border: 1px solid color-mix(in oklch, var(--gold) 50%, var(--border));
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-family: var(--font-mono), monospace;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 50;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    animation: tooltip-pop 0.16s ease-out forwards;
+  }
+  .dark .cell-tooltip[data-coord]:hover::before,
+  .dark .cell-tooltip[data-coord]:focus-visible::before {
+    color: var(--gold);
+  }
+  .cell-tooltip[data-content]:hover::before,
+  .cell-tooltip[data-content]:focus-visible::before {
+    content: attr(data-coord) ' · ' attr(data-content);
+  }
+
+  /* ---- Spectator activity-row separators -------------------------------- */
+  /* Uses inset box-shadow so it doesn't conflict with Tailwind tone-bg
+     border utilities (those set border-color via the utilities layer). */
+  .activity-row:not(:last-child) {
+    box-shadow: inset 0 -1px 0 color-mix(in oklch, var(--muted-foreground) 12%, transparent);
+  }
+
+  /* ---- Spectator "watching" panel --------------------------------------- */
+  .watching-panel {
+    background-image:
+      radial-gradient(circle at 15% 0%, color-mix(in oklch, var(--ocean) 12%, transparent) 0, transparent 55%),
+      radial-gradient(circle at 90% 100%, color-mix(in oklch, var(--ocean) 8%, transparent) 0, transparent 50%);
+  }
+  .watching-indicator {
+    background: color-mix(in oklch, var(--ocean) 12%, transparent);
+    border: 1px solid color-mix(in oklch, var(--ocean) 35%, transparent);
+    color: var(--ocean);
+  }
+  .dark .watching-indicator {
+    color: color-mix(in oklch, var(--ocean) 75%, white 25%);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Animations
+   -------------------------------------------------------------------------- */
+
+@keyframes shimmer-slide {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes power-menace {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 8px color-mix(in oklch, var(--destructive) 30%, transparent),
+      0 0 12px color-mix(in oklch, var(--destructive) 30%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 10px color-mix(in oklch, var(--destructive) 45%, transparent),
+      0 0 22px color-mix(in oklch, var(--destructive) 55%, transparent);
+  }
+}
+
+@keyframes power-ward {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 8px color-mix(in oklch, var(--ocean) 30%, transparent),
+      0 0 12px color-mix(in oklch, var(--ocean) 35%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 10px color-mix(in oklch, var(--ocean) 45%, transparent),
+      0 0 20px color-mix(in oklch, var(--ocean) 55%, transparent);
+  }
+}
+
+@keyframes power-epic {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 8px color-mix(in oklch, var(--gold) 35%, transparent),
+      0 0 14px color-mix(in oklch, var(--gold) 45%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 12px color-mix(in oklch, var(--gold) 55%, transparent),
+      0 0 26px color-mix(in oklch, var(--gold) 65%, transparent);
+  }
+}
+
+@keyframes sparkle-burst {
+  0% { transform: scale(0.4); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+@keyframes at-risk-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklch, var(--gold) 50%, transparent),
+      0 0 0 0 color-mix(in oklch, var(--rust) 0%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklch, var(--gold) 80%, transparent),
+      0 0 0 4px color-mix(in oklch, var(--rust) 25%, transparent);
+  }
+}
+
+@keyframes money-gain {
+  0% { transform: scale(1); background-color: color-mix(in oklch, var(--gold) 5%, transparent); }
+  20% {
+    transform: scale(1.1);
+    background-color: color-mix(in oklch, var(--gold) 42%, transparent);
+    box-shadow: 0 0 18px color-mix(in oklch, var(--gold) 65%, transparent);
+    color: var(--gold-ink);
+  }
+  100% { transform: scale(1); background-color: transparent; }
+}
+.dark .money-flash-gain {
+  /* keep the same keyframe, but the dark theme gold token renders brighter */
+}
+
+@keyframes money-loss {
+  0% { transform: scale(1); background-color: color-mix(in oklch, var(--destructive) 5%, transparent); }
+  20% {
+    transform: scale(0.92);
+    background-color: color-mix(in oklch, var(--destructive) 38%, transparent);
+    box-shadow: 0 0 18px color-mix(in oklch, var(--destructive) 60%, transparent);
+  }
+  100% { transform: scale(1); background-color: transparent; }
+}
+
+@keyframes copy-ripple {
+  0% { transform: scale(0); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+@keyframes inventory-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes activity-highlight {
+  0% { background-color: color-mix(in oklch, var(--gold) 35%, transparent); }
+  100% { background-color: transparent; }
+}
+
+@keyframes coord-glow {
+  0%, 100% {
+    text-shadow:
+      0 0 8px color-mix(in oklch, var(--gold) 70%, transparent),
+      0 0 18px color-mix(in oklch, var(--gold) 50%, transparent),
+      0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+  50% {
+    text-shadow:
+      0 0 14px color-mix(in oklch, var(--gold) 90%, transparent),
+      0 0 28px color-mix(in oklch, var(--gold) 70%, transparent),
+      0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Light-mode version: gentler, uses dark drop-shadow for contrast */
+@keyframes coord-glow-light {
+  0%, 100% {
+    text-shadow:
+      0 1px 2px rgba(40, 28, 6, 0.28),
+      0 0 10px color-mix(in oklch, var(--gold-strong) 40%, transparent);
+  }
+  50% {
+    text-shadow:
+      0 1px 2px rgba(40, 28, 6, 0.32),
+      0 0 16px color-mix(in oklch, var(--gold) 60%, transparent);
+  }
+}
+
+@keyframes crown-float {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-3px) rotate(1.5deg); }
+}
+
+@keyframes medal-shimmer {
+  0%, 100% { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18)) brightness(1); }
+  50% { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.22)) brightness(1.18); }
+}
+
+@keyframes spotlight-pulse {
+  0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.04); }
+}
+
+@keyframes pulse-gold-ring {
+  0% { box-shadow:
+    0 0 0 0 color-mix(in oklch, var(--gold) 70%, transparent),
+    0 0 14px color-mix(in oklch, var(--gold) 50%, transparent); }
+  70% { box-shadow:
+    0 0 0 12px transparent,
+    0 0 14px color-mix(in oklch, var(--gold) 30%, transparent); }
+  100% { box-shadow:
+    0 0 0 0 transparent,
+    0 0 14px color-mix(in oklch, var(--gold) 50%, transparent); }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-16px) rotateZ(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(420px) rotateZ(540deg); opacity: 0; }
+}
+
+@keyframes reveal-sweep {
+  0% { opacity: 0; transform: scale(0.92); }
+  25% { opacity: 0.85; }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
+@keyframes tooltip-pop {
+  0% { opacity: 0; transform: translateX(-50%) translateY(2px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@keyframes title-sway {
+  0%, 100% { transform: rotate(-1.2deg) translateY(0); }
+  50% { transform: rotate(1.2deg) translateY(-2px); }
+}
+
+@keyframes wave-sweep {
+  0% { background-position: center bottom, 0 0; }
+  100% { background-position: center bottom, -240px 0; }
+}
+
+@keyframes ship-bob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  25% { transform: translateY(-4px) rotate(1deg); }
+  50% { transform: translateY(-7px) rotate(2deg); }
+  75% { transform: translateY(-4px) rotate(-1deg); }
+}
+
+@keyframes pin-bounce {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+  60% { transform: translateY(0); }
+}
+
+@keyframes chest-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+.animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+
+@keyframes float-coin {
+  0% { transform: translateY(0) rotateY(0deg); opacity: 1; }
+  100% { transform: translateY(-120px) rotateY(720deg); opacity: 0; }
+}
+.animate-coin-fly { animation: float-coin 1.1s ease-out forwards; }
+
+@keyframes shake-x {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+.animate-shake { animation: shake-x 0.5s ease-in-out; }
+
+@keyframes splash {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  60% { transform: scale(1.4); opacity: 0.7; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.animate-splash { animation: splash 0.9s ease-out forwards; }
+
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); opacity: 1; }
+  25% { transform: scale(1.08) rotate(2deg); opacity: 0.92; }
+  50% { transform: scale(0.96) rotate(-1deg); opacity: 1; }
+  75% { transform: scale(1.05) rotate(3deg); opacity: 0.95; }
+}
+.animate-flame { animation: flame-flicker 0.6s ease-in-out infinite; }
+
+@keyframes shield-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--ocean) 50%, transparent); }
+  50% { box-shadow: 0 0 0 12px transparent; }
+}
+.animate-shield-pulse { animation: shield-pulse 1.4s ease-out infinite; }
+
+@keyframes mirror-gleam {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+.mirror-gleam::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in oklch, white 55%, transparent), transparent);
+  animation: mirror-gleam 1.4s ease-in-out;
+}
+
+@keyframes anchor-drop {
+  0% { transform: translateY(-60px) rotate(-25deg); opacity: 0; }
+  60% { transform: translateY(8px) rotate(8deg); opacity: 1; }
+  80% { transform: translateY(-4px) rotate(-3deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+.animate-anchor-drop { animation: anchor-drop 0.8s cubic-bezier(0.3, 1.4, 0.5, 1) forwards; }
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--gold) 70%, transparent); }
+  70% { box-shadow: 0 0 0 14px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.animate-pulse-ring { animation: pulse-ring 1.6s ease-out infinite; }
+
+@keyframes podium-rise {
+  0% { transform: translateY(40px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.animate-podium-rise { animation: podium-rise 0.6s cubic-bezier(0.2, 1, 0.4, 1) forwards; }
+
+@keyframes wave {
+  0% { background-position: 0 0; }
+  100% { background-position: 200px 0; }
+}
+.ocean-waves {
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--ocean) 30%, transparent) 0,
+    color-mix(in oklch, var(--ocean) 30%, transparent) 10px,
+    transparent 10px,
+    transparent 20px
+  );
+  animation: wave 3s linear infinite;
+}
+
+/* reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

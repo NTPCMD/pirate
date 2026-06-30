@@ -1,0 +1,1055 @@
+     1→'use client';
+     2→
+     3→import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+     4→import { AnimatePresence, motion } from 'framer-motion';
+     5→import {
+     6→  Coins,
+     7→  Landmark,
+     8→  Trophy,
+     9→  Lock,
+    10→  Wifi,
+    11→  WifiOff,
+    12→  Clock,
+    13→  Pause,
+    14→  Users,
+    15→  ChevronRight,
+    16→  Shield,
+    17→  FlipHorizontal,
+    18→  Skull,
+    19→  Crown,
+    20→  History,
+    21→  MapPin,
+    22→  PackageOpen,
+    23→  Sparkles,
+    24→  Flame,
+    25→  Timer,
+    26→  type LucideIcon,
+    27→} from 'lucide-react';
+    28→import { useGameStore } from '@/hooks/pirate/useGameStore';
+    29→import { useSound } from '@/components/pirate/SoundManager';
+    30→import { useTimerSound } from '@/hooks/pirate/useTimerSound';
+    31→import {
+    32→  GameBoard,
+    33→  PowerIcon,
+    34→  StatusDot,
+    35→  powerChipClass,
+    36→  powerTextClass,
+    37→} from '@/components/pirate/common';
+    38→import { EmoteBar } from '@/components/pirate/EmoteBar';
+    39→import { ChatPanel } from '@/components/pirate/ChatPanel';
+    40→import {
+    41→  Dialog,
+    42→  DialogContent,
+    43→  DialogDescription,
+    44→  DialogFooter,
+    45→  DialogHeader,
+    46→  DialogTitle,
+    47→} from '@/components/ui/dialog';
+    48→import { Button } from '@/components/ui/button';
+    49→import { Badge } from '@/components/ui/badge';
+    50→import {
+    51→  POWERS,
+    52→  formatMoney,
+    53→  type DefenseChoice,
+    54→  type DefensePrompt,
+    55→  type PlayerHistoryEntry,
+    56→  type PlayerGameState,
+    57→  type PowerType,
+    58→} from '@/lib/pirate/types';
+    59→import { cn } from '@/lib/utils';
+    60→
+    61→// ---------------------------------------------------------------------------
+    62→// Helpers
+    63→// ---------------------------------------------------------------------------
+    64→
+    65→const HISTORY_KIND_META: Record<
+    66→  PlayerHistoryEntry['kind'],
+    67→  { icon: LucideIcon; color: string; bg: string; border: string }
+    68→> = {
+    69→  cash: { icon: Coins, color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-l-emerald-500' },
+    70→  power: { icon: Sparkles, color: 'text-gold', bg: 'bg-gold/10', border: 'border-l-gold' },
+    71→  attack: { icon: Flame, color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-l-red-500' },
+    72→  defense: { icon: Shield, color: 'text-sky-500', bg: 'bg-sky-500/10', border: 'border-l-sky-500' },
+    73→  system: { icon: History, color: 'text-muted-foreground', bg: 'bg-muted/40', border: 'border-l-muted-foreground' },
+    74→};
+    75→
+    76→function formatClock(at: number): string {
+    77→  const d = new Date(at);
+    78→  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    79→}
+    80→
+    81→// ---------------------------------------------------------------------------
+    82→// Round Timer Indicator — small countdown chip with a shrinking progress bar.
+    83→// Pulses red when remaining ≤ 3s. Hidden when no timer is configured.
+    84→// ---------------------------------------------------------------------------
+    85→
+    86→function RoundTimerIndicator({
+    87→  timer,
+    88→}: {
+    89→  timer: { duration: number; remaining: number; active: boolean } | undefined;
+    90→}) {
+    91→  // Drive the countdown tick + beep sounds. Must be called before any early
+    92→  // return — passing `undefined` is safe (the hook no-ops when there's no
+    93→  // timer configured).
+    94→  useTimerSound(timer?.remaining, timer?.active);
+    95→
+    96→  if (!timer || timer.duration <= 0) return null;
+    97→  const { duration, remaining, active } = timer;
+    98→  const isLow = active && remaining <= 3;
+    99→  const pct = duration > 0 ? Math.max(0, Math.min(100, (remaining / duration) * 100)) : 0;
+   100→
+   101→  return (
+   102→    <AnimatePresence>
+   103→      <motion.div
+   104→        initial={{ opacity: 0, scale: 0.85 }}
+   105→        animate={
+   106→          isLow
+   107→            ? { opacity: 1, scale: [1, 1.06, 1] }
+   108→            : { opacity: 1, scale: 1 }
+   109→        }
+   110→        exit={{ opacity: 0, scale: 0.85 }}
+   111→        transition={
+   112→          isLow
+   113→            ? { scale: { duration: 0.6, repeat: Infinity, ease: 'easeInOut' } }
+   114→            : { duration: 0.2 }
+   115→        }
+   116→        className={cn(
+   117→          'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-mono font-semibold tabular-nums',
+   118→          isLow
+   119→            ? 'bg-destructive/15 text-destructive border-destructive/50'
+   120→            : active
+   121→              ? 'bg-gold/15 text-gold border-gold/40'
+   122→              : 'bg-ocean/10 text-ocean border-ocean/40',
+   123→        )}
+   124→        role="status"
+   125→        aria-label={
+   126→          active
+   127→            ? `Auto-call in ${remaining} seconds`
+   128→            : `Timer paused at ${remaining} seconds`
+   129→        }
+   130→        title={
+   131→          active
+   132→            ? `Next coordinate auto-called in ${remaining}s`
+   133→            : `Timer paused`
+   134→        }
+   135→      >
+   136→        <Timer className={cn('h-3 w-3', isLow && 'animate-pulse')} />
+   137→        <span className="leading-none">{active ? `${remaining}s` : '⏸'}</span>
+   138→        {/* Shrinking progress bar */}
+   139→        <span className="relative ml-1 h-1.5 w-10 overflow-hidden rounded-full bg-current/20">
+   140→          <motion.span
+   141→            className={cn(
+   142→              'absolute inset-y-0 left-0 rounded-full',
+   143→              isLow ? 'bg-destructive' : active ? 'bg-gold' : 'bg-ocean',
+   144→            )}
+   145→            initial={false}
+   146→            animate={{ width: `${pct}%` }}
+   147→            transition={
+   148→              active
+   149→                ? { duration: 1, ease: 'linear' }
+   150→                : { duration: 0.25, ease: 'easeOut' }
+   151→            }
+   152→          />
+   153→        </span>
+   154→      </motion.div>
+   155→    </AnimatePresence>
+   156→  );
+   157→}
+   158→
+   159→// Animated value — pops on change via key-based AnimatePresence
+   160→function AnimatedValue({ value }: { value: number }) {
+   161→  return (
+   162→    <span className="relative inline-block tabular-nums">
+   163→      <AnimatePresence mode="popLayout" initial={false}>
+   164→        <motion.span
+   165→          key={value}
+   166→          initial={{ opacity: 0, y: -10, scale: 0.7 }}
+   167→          animate={{ opacity: 1, y: 0, scale: 1 }}
+   168→          exit={{ opacity: 0, y: 10, scale: 0.7 }}
+   169→          transition={{ duration: 0.25, ease: 'easeOut' }}
+   170→          className="inline-block"
+   171→        >
+   172→          {formatMoney(value)}
+   173→        </motion.span>
+   174→      </AnimatePresence>
+   175→    </span>
+   176→  );
+   177→}
+   178→
+   179→// Money stat card with tone + animated value
+   180→type MoneyStatVariant = 'at-risk' | 'banked' | 'default';
+   181→
+   182→function MoneyStat({
+   183→  label,
+   184→  value,
+   185→  tone,
+   186→  icon,
+   187→  hint,
+   188→  variant = 'default',
+   189→}: {
+   190→  label: string;
+   191→  value: number;
+   192→  tone: 'gold' | 'ocean' | 'default';
+   193→  icon: React.ReactNode;
+   194→  hint?: string;
+   195→  variant?: MoneyStatVariant;
+   196→}) {
+   197→  const toneClass = {
+   198→    default: 'bg-secondary/60 text-foreground border-border',
+   199→    gold: 'bg-gold/15 text-gold border-gold/40',
+   200→    ocean: 'bg-ocean/15 text-ocean border-ocean/40',
+   201→  }[tone];
+   202→  const variantClass =
+   203→    variant === 'at-risk' ? 'money-at-risk' : variant === 'banked' ? 'money-banked' : '';
+   204→
+   205→  // Track previous value to flash gain/loss
+   206→  const prevRef = useRef<number | null>(null);
+   207→  const [flashClass, setFlashClass] = useState('');
+   208→  useEffect(() => {
+   209→    if (prevRef.current === null) {
+   210→      prevRef.current = value;
+   211→      return;
+   212→    }
+   213→    if (prevRef.current === value) return;
+   214→    const delta = value - prevRef.current;
+   215→    prevRef.current = value;
+   216→    setFlashClass(delta > 0 ? 'money-flash-gain' : 'money-flash-loss');
+   217→    const t = window.setTimeout(() => setFlashClass(''), 750);
+   218→    return () => window.clearTimeout(t);
+   219→  }, [value]);
+   220→
+   221→  return (
+   222→    <div
+   223→      className={cn(
+   224→        'rounded-xl border px-3 py-2.5 flex flex-col gap-0.5 min-w-0 transition-colors',
+   225→        toneClass,
+   226→        variantClass,
+   227→        flashClass,
+   228→      )}
+   229→    >
+   230→      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide opacity-80">
+   231→        {icon}
+   232→        <span className="truncate">{label}</span>
+   233→      </div>
+   234→      <div className="text-lg sm:text-xl font-bold font-mono tabular-nums flex items-center gap-1">
+   235→        {variant === 'at-risk' && <Coins className="h-3.5 w-3.5 text-gold/80 shrink-0" />}
+   236→        {variant === 'banked' && <Lock className="h-3.5 w-3.5 text-ocean/80 shrink-0" />}
+   237→        <AnimatedValue value={value} />
+   238→      </div>
+   239→      {hint && <div className="text-[10px] opacity-70 truncate">{hint}</div>}
+   240→    </div>
+   241→  );
+   242→}
+   243→
+   244→// ---------------------------------------------------------------------------
+   245→// Target Selection Modal
+   246→// ---------------------------------------------------------------------------
+   247→
+   248→function TargetSelectionModal({
+   249→  open,
+   250→  power,
+   251→  rivals,
+   252→  busy,
+   253→  onSelect,
+   254→  onClose,
+   255→}: {
+   256→  open: boolean;
+   257→  power: PowerType | null;
+   258→  rivals: PlayerGameState['rivals'];
+   259→  busy: boolean;
+   260→  onSelect: (targetId: string, targetName: string) => void;
+   261→  onClose: () => void;
+   262→}) {
+   263→  if (!power) return null;
+   264→  const meta = POWERS[power];
+   265→  // Sort rivals by running total descending — strategic context (anchor the richest, etc.)
+   266→  const sortedRivals = [...rivals].sort((a, b) => b.runningTotal - a.runningTotal);
+   267→
+   268→  return (
+   269→    <Dialog open={open} onOpenChange={(o) => !o && !busy && onClose()}>
+   270→      <DialogContent
+   271→        showCloseButton={!busy}
+   272→        aria-describedby={undefined}
+   273→        className="sm:max-w-md max-h-[90vh] flex flex-col"
+   274→      >
+   275→        <DialogHeader>
+   276→          <div className="flex items-start gap-3">
+   277→            <div
+   278→              className={cn(
+   279→                'rounded-lg p-2 border shrink-0',
+   280→                powerChipClass(power),
+   281→              )}
+   282→            >
+   283→              <PowerIcon power={power} className="h-5 w-5" />
+   284→            </div>
+   285→            <div className="min-w-0">
+   286→              <DialogTitle className="font-display text-xl">
+   287→                Choose a target for {meta.label}
+   288→              </DialogTitle>
+   289→              <DialogDescription className="mt-1">
+   290→                {meta.description}
+   291→              </DialogDescription>
+   292→            </div>
+   293→          </div>
+   294→        </DialogHeader>
+   295→
+   296→        <div className="flex-1 overflow-y-auto scroll-thin -mx-1 px-1 flex flex-col gap-2 mt-1">
+   297→          {sortedRivals.length === 0 ? (
+   298→            <div className="text-center text-sm text-muted-foreground py-8">
+   299→              No rivals to target. Wait for other players to join!
+   300→            </div>
+   301→          ) : (
+   302→            sortedRivals.map((r) => (
+   303→              <button
+   304→                key={r.id}
+   305→                type="button"
+   306→                disabled={busy || !r.connected}
+   307→                onClick={() => onSelect(r.id, r.name)}
+   308→                aria-label={`Target ${r.name} who has ${formatMoney(r.runningTotal)} at risk`}
+   309→                className={cn(
+   310→                  'flex items-center justify-between gap-2 rounded-lg border border-border/70 bg-card/60 px-3 py-2.5 text-left transition-colors',
+   311→                  'hover:bg-accent/60 hover:border-gold/40 disabled:opacity-50 disabled:cursor-not-allowed',
+   312→                  'min-h-[44px]',
+   313→                )}
+   314→              >
+   315→                <div className="flex items-center gap-2 min-w-0">
+   316→                  <StatusDot connected={r.connected} />
+   317→                  <div className="min-w-0">
+   318→                    <div className="flex items-center gap-1.5">
+   319→                      <span className="font-semibold text-sm truncate">{r.name}</span>
+   320→                      {r.isHost && <Crown className="h-3 w-3 text-gold shrink-0" />}
+   321→                    </div>
+   322→                    <div className="text-[10px] text-muted-foreground">
+   323→                      {r.inventoryCount} defensive {r.inventoryCount === 1 ? 'item' : 'items'}
+   324→                      {!r.connected && ' · disconnected'}
+   325→                    </div>
+   326→                  </div>
+   327→                </div>
+   328→                <div className="text-right shrink-0">
+   329→                  <div className="text-sm font-mono font-semibold text-gold">
+   330→                    {formatMoney(r.runningTotal)}
+   331→                  </div>
+   332→                  <div className="text-[10px] text-ocean">
+   333→                    banked {formatMoney(r.bankedTotal)}
+   334→                  </div>
+   335→                </div>
+   336→                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+   337→              </button>
+   338→            ))
+   339→          )}
+   340→        </div>
+   341→
+   342→        <DialogFooter>
+   343→          <Button variant="ghost" onClick={onClose} disabled={busy}>
+   344→            Cancel
+   345→          </Button>
+   346→        </DialogFooter>
+   347→      </DialogContent>
+   348→    </Dialog>
+   349→  );
+   350→}
+   351→
+   352→// ---------------------------------------------------------------------------
+   353→// Defense Modal — non-dismissable, with countdown
+   354→// ---------------------------------------------------------------------------
+   355→
+   356→function DefenseModal({
+   357→  prompt,
+   358→  busy,
+   359→  onResolve,
+   360→}: {
+   361→  prompt: DefensePrompt | null;
+   362→  busy: boolean;
+   363→  onResolve: (choice: DefenseChoice) => void;
+   364→}) {
+   365→  // Tick state to force re-render every 250ms while prompt is active.
+   366→  // setState is only ever called inside the setInterval callback (not in
+   367→  // the effect body), so this is lint-safe re: react-hooks/set-state-in-effect.
+   368→  const [, setTick] = useState(0);
+   369→
+   370→  useEffect(() => {
+   371→    if (!prompt) return;
+   372→    const interval = setInterval(() => setTick((t) => t + 1), 250);
+   373→    return () => clearInterval(interval);
+   374→  }, [prompt]);
+   375→
+   376→  // Play the appropriate sound when a new prompt arrives.
+   377→  const lastPromptIdRef = useRef<string | null>(null);
+   378→  const { play } = useSound();
+   379→  useEffect(() => {
+   380→    if (!prompt) {
+   381→      lastPromptIdRef.current = null;
+   382→      return;
+   383→    }
+   384→    if (lastPromptIdRef.current === prompt.promptId) return;
+   385→    lastPromptIdRef.current = prompt.promptId;
+   386→    const map: Partial<Record<PowerType, 'anchor' | 'fire' | 'power' | 'splash'>> = {
+   387→      anchor: 'anchor',
+   388→      fire: 'fire',
+   389→      swap: 'power',
+   390→    };
+   391→    play(map[prompt.attackType] ?? 'power');
+   392→  }, [prompt, play]);
+   393→
+   394→  if (!prompt) return null;
+   395→
+   396→  const meta = POWERS[prompt.attackType];
+   397→  const ms = prompt.deadline - Date.now();
+   398→  const remaining = Math.max(0, Math.ceil(ms / 1000));
+   399→  const auto = ms <= 0;
+   400→  const mirrorFirst = prompt.hasMirror; // Mirror takes precedence
+   401→
+   402→  return (
+   403→    <Dialog open>
+   404→      <DialogContent
+   405→        showCloseButton={false}
+   406→        className="sm:max-w-md"
+   407→        onEscapeKeyDown={(e) => e.preventDefault()}
+   408→        onPointerDownOutside={(e) => e.preventDefault()}
+   409→        onInteractOutside={(e) => e.preventDefault()}
+   410→        aria-describedby="defense-desc"
+   411→      >
+   412→        <DialogHeader>
+   413→          <div className="flex items-start gap-3">
+   414→            <div
+   415→              className={cn(
+   416→                'rounded-lg p-2 border shrink-0 animate-pulse',
+   417→                powerChipClass(prompt.attackType),
+   418→              )}
+   419→            >
+   420→              <PowerIcon power={prompt.attackType} className="h-6 w-6" />
+   421→            </div>
+   422→            <div className="min-w-0">
+   423→              <DialogTitle className="font-display text-xl text-destructive">
+   424→                Under attack!
+   425→              </DialogTitle>
+   426→              <DialogDescription id="defense-desc" className="mt-1">
+   427→                <span className="font-semibold text-foreground">
+   428→                  {prompt.attackerName}
+   429→                </span>{' '}
+   430→                used{' '}
+   431→                <span className={cn('font-semibold', powerTextClass(prompt.attackType))}>
+   432→                  {meta.label}
+   433→                </span>
+   434→                {typeof prompt.amount === 'number' && (
+   435→                  <>
+   436→                    {' '}— would steal{' '}
+   437→                    <span className="font-mono text-gold">
+   438→                      {formatMoney(prompt.amount)}
+   439→                    </span>
+   440→                  </>
+   441→                )}
+   442→                .
+   443→              </DialogDescription>
+   444→            </div>
+   445→          </div>
+   446→        </DialogHeader>
+   447→
+   448→        <div className="flex items-center justify-center gap-2 my-1">
+   449→          <Clock
+   450→            className={cn(
+   451→              'h-4 w-4',
+   452→              auto ? 'text-destructive' : 'text-amber-500',
+   453→            )}
+   454→          />
+   455→          <span
+   456→            className={cn(
+   457→              'font-mono text-lg font-bold tabular-nums',
+   458→              auto ? 'text-destructive' : 'text-amber-500',
+   459→            )}
+   460→            aria-live="polite"
+   461→          >
+   462→            {auto ? 'Auto-resolving…' : `${remaining}s`}
+   463→          </span>
+   464→        </div>
+   465→
+   466→        <DialogFooter className="flex-col gap-2 sm:flex-col">
+   467→          {prompt.hasMirror && (
+   468→            <Button
+   469→              variant="default"
+   470→              size="lg"
+   471→              disabled={busy || auto}
+   472→              onClick={() => onResolve('mirror')}
+   473→              className="w-full h-12 bg-fuchsia-600 hover:bg-fuchsia-700 text-white border-fuchsia-500/40"
+   474→            >
+   475→              <FlipHorizontal className="h-5 w-5" />
+   476→              Reflect with Mirror
+   477→              {mirrorFirst && (
+   478→                <Badge
+   479→                  variant="secondary"
+   480→                  className="ml-1 bg-white/20 text-white border-white/20"
+   481→                >
+   482→                  Recommended
+   483→                </Badge>
+   484→              )}
+   485→            </Button>
+   486→          )}
+   487→          {prompt.hasShield && (
+   488→            <Button
+   489→              variant="default"
+   490→              size="lg"
+   491→              disabled={busy || auto}
+   492→              onClick={() => onResolve('shield')}
+   493→              className="w-full h-12 bg-slate-600 hover:bg-slate-700 text-white border-slate-500/40"
+   494→            >
+   495→              <Shield className="h-5 w-5" />
+   496→              Block with Shield
+   497→            </Button>
+   498→          )}
+   499→          <Button
+   500→            variant="outline"
+   501→            size="lg"
+   502→            disabled={busy || auto}
+   503→            onClick={() => onResolve('take')}
+   504→            className="w-full h-12 border-destructive/40 text-destructive hover:bg-destructive/10"
+   505→          >
+   506→            <Skull className="h-5 w-5" />
+   507→            Take the hit
+   508→          </Button>
+   509→        </DialogFooter>
+   510→      </DialogContent>
+   511→    </Dialog>
+   512→  );
+   513→}
+   514→
+   515→// ---------------------------------------------------------------------------
+   516→// Main PlayerGame component
+   517→// ---------------------------------------------------------------------------
+   518→
+   519→export default function PlayerGame() {
+   520→  const playerState = useGameStore((s) => s.playerState);
+   521→  const defensePrompt = useGameStore((s) => s.defensePrompt);
+   522→  const connected = useGameStore((s) => s.connected);
+   523→  const code = useGameStore((s) => s.code);
+   524→  const playerName = useGameStore((s) => s.playerName);
+   525→  const revealSquare = useGameStore((s) => s.revealSquare);
+   526→  const selectTarget = useGameStore((s) => s.selectTarget);
+   527→  const resolveDefense = useGameStore((s) => s.resolveDefense);
+   528→  const pushToast = useGameStore((s) => s.pushToast);
+   529→  const { play } = useSound();
+   530→
+   531→  const [pendingTargetPower, setPendingTargetPower] = useState<PowerType | null>(
+   532→    null,
+   533→  );
+   534→  const [selectingTarget, setSelectingTarget] = useState(false);
+   535→  const [resolving, setResolving] = useState(false);
+   536→  // Board reveal flash — toggles a brief gold sweep behind the board whenever
+   537→  // a square transitions from hidden → revealed on the player's own board.
+   538→  const [boardFlashKey, setBoardFlashKey] = useState(0);
+   539→  const prevRevealedCountRef = useRef<number | null>(null);
+   540→  const boardForFlash = playerState?.me.board;
+   541→  useEffect(() => {
+   542→    if (!boardForFlash) {
+   543→      prevRevealedCountRef.current = null;
+   544→      return;
+   545→    }
+   546→    const count = boardForFlash.reduce((n, s) => n + (s.revealed ? 1 : 0), 0);
+   547→    const prev = prevRevealedCountRef.current;
+   548→    prevRevealedCountRef.current = count;
+   549→    // Only flash when the count goes UP (a square was revealed on my board).
+   550→    // Reconnects (board replaced) or initial loads don't trigger it.
+   551→    if (prev !== null && count > prev) {
+   552→      setBoardFlashKey((k) => k + 1);
+   553→    }
+   554→  }, [boardForFlash]);
+   555→
+   556→  // --- Build revealable coords set -----------------------------------------
+   557→  const board = playerState?.me.board;
+   558→  const calledCoordinates = playerState?.calledCoordinates ?? [];
+   559→  const currentCoord = playerState?.currentCoord;
+   560→
+   561→  const revealableCoords = useMemo(() => {
+   562→    const set = new Set<string>();
+   563→    if (!board) return set;
+   564→    for (const coord of calledCoordinates) {
+   565→      const sq = board.find((s) => s.coord === coord);
+   566→      if (!sq || !sq.revealed) set.add(coord);
+   567→    }
+   568→    if (currentCoord) set.add(currentCoord);
+   569→    return set;
+   570→  }, [board, calledCoordinates, currentCoord]);
+   571→
+   572→  // Is the current called coord still unrevealed on MY board?
+   573→  const currentCoordUnrevealed = useMemo(() => {
+   574→    if (!board || !currentCoord) return false;
+   575→    const sq = board.find((s) => s.coord === currentCoord);
+   576→    return !sq?.revealed;
+   577→  }, [board, currentCoord]);
+   578→
+   579→  // --- Square click handler -------------------------------------------------
+   580→  const onSquareClick = useCallback(
+   581→    async (coord: string) => {
+   582→      // Read the square content BEFORE revealing — content is static, only
+   583→      // `revealed` flips. Reading after the ack would race with the state
+   584→      // broadcast (ack arrives before the state update).
+   585→      const sq = board?.find((s) => s.coord === coord);
+   586→      const targetingPower =
+   587→        sq?.content.kind === 'power' && POWERS[sq.content.power].targeting
+   588→          ? sq.content.power
+   589→          : null;
+   590→
+   591→      const r = await revealSquare(coord);
+   592→      if (r.error) {
+   593→        pushToast({ title: r.error, tone: 'bad' });
+   594→        play('error');
+   595→        return;
+   596→      }
+   597→      play('reveal');
+   598→      if (targetingPower) {
+   599→        setPendingTargetPower(targetingPower);
+   600→      }
+   601→    },
+   602→    [board, revealSquare, pushToast, play],
+   603→  );
+   604→
+   605→  // --- Select target action -------------------------------------------------
+   606→  const handleSelectTarget = useCallback(
+   607→    async (targetId: string, targetName: string) => {
+   608→      if (!pendingTargetPower) return;
+   609→      setSelectingTarget(true);
+   610→      const r = await selectTarget(pendingTargetPower, targetId);
+   611→      setSelectingTarget(false);
+   612→      if (r.error) {
+   613→        pushToast({ title: r.error, tone: 'bad' });
+   614→        play('error');
+   615→      } else if (r.pending) {
+   616→        pushToast({
+   617→          title: `Waiting for ${targetName}'s defense…`,
+   618→          description: 'Your attack is in flight!',
+   619→          tone: 'info',
+   620→        });
+   621→      } else if (r.resolved) {
+   622→        pushToast({
+   623→          title: `${POWERS[pendingTargetPower].label} used!`,
+   624→          description: `Targeted ${targetName}`,
+   625→          tone: 'good',
+   626→        });
+   627→      }
+   628→      setPendingTargetPower(null);
+   629→    },
+   630→    [pendingTargetPower, selectTarget, pushToast, play],
+   631→  );
+   632→
+   633→  // --- Resolve defense action -----------------------------------------------
+   634→  const handleResolveDefense = useCallback(
+   635→    async (choice: DefenseChoice) => {
+   636→      if (!defensePrompt) return;
+   637→      setResolving(true);
+   638→      const r = await resolveDefense(defensePrompt.promptId, choice);
+   639→      setResolving(false);
+   640→      if (r.error) {
+   641→        pushToast({ title: r.error, tone: 'bad' });
+   642→        play('error');
+   643→      }
+   644→    },
+   645→    [defensePrompt, resolveDefense, pushToast, play],
+   646→  );
+   647→
+   648→  if (!playerState) {
+   649→    return (
+   650→      <div className="min-h-[calc(100vh-3rem)] flex items-center justify-center p-8 text-center text-muted-foreground">
+   651→        Loading your game…
+   652→      </div>
+   653→    );
+   654→  }
+   655→
+   656→  const me = playerState.me;
+   657→  const rivals = playerState.rivals;
+   658→  const status = playerState.status;
+   659→  const locked = playerState.locked;
+   660→  const finalScore = me.bankedTotal + me.runningTotal;
+   661→  const boardDisabled = status !== 'playing' || locked;
+   662→  const recentHistory = me.history.slice(0, 10); // engine unshifts — newest first
+   663→
+   664→  return (
+   665→    <div className="min-h-[calc(100vh-3rem)] flex flex-col gap-4 p-3 sm:p-4 max-w-7xl mx-auto w-full">
+   666→      {/* --- Top bar (sticky) --- */}
+   667→      <header className="sticky top-0 z-30 -mx-3 sm:-mx-4 px-3 sm:px-4 py-2.5 bg-background/85 backdrop-blur-md border-b border-border/60">
+   668→        <div className="flex items-center justify-between gap-2 flex-wrap">
+   669→          <div className="flex items-center gap-2 min-w-0">
+   670→            <Badge
+   671→              variant="secondary"
+   672→              className="font-mono text-base font-bold tracking-wider"
+   673→              aria-label={`Game code ${code}`}
+   674→            >
+   675→              {code}
+   676→            </Badge>
+   677→            <span
+   678→              className={cn(
+   679→                'flex items-center gap-1 text-xs px-2 py-1 rounded-md',
+   680→                connected
+   681→                  ? 'text-emerald-500 bg-emerald-500/10'
+   682→                  : 'text-destructive bg-destructive/10',
+   683→              )}
+   684→              role="status"
+   685→            >
+   686→              {connected ? (
+   687→                <Wifi className="h-3 w-3" />
+   688→              ) : (
+   689→                <WifiOff className="h-3 w-3" />
+   690→              )}
+   691→              <span className="hidden sm:inline">
+   692→                {connected ? 'Live' : 'Offline'}
+   693→              </span>
+   694→            </span>
+   695→            {locked && (
+   696→              <Badge
+   697→                variant="outline"
+   698→                className="text-amber-500 border-amber-500/40 bg-amber-500/10"
+   699→              >
+   700→                <Lock className="h-3 w-3" /> Locked by host
+   701→              </Badge>
+   702→            )}
+   703→            <RoundTimerIndicator timer={playerState.roundTimer} />
+   704→          </div>
+   705→          <div className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
+   706→            <span className="truncate">
+   707→              Captain{' '}
+   708→              <span className="text-foreground font-semibold">{playerName}</span>
+   709→            </span>
+   710→            <span aria-hidden>•</span>
+   711→            <span className="truncate">
+   712→              Host{' '}
+   713→              <span className="text-foreground font-semibold">
+   714→                {playerState.hostName}
+   715→              </span>
+   716→            </span>
+   717→          </div>
+   718→        </div>
+   719→
+   720→        {/* Current called coordinate — big, gold, pulsing if pending */}
+   721→        <AnimatePresence mode="wait">
+   722→          {currentCoord && (
+   723→            <motion.div
+   724→              key={currentCoord + (currentCoordUnrevealed ? '-pending' : '-done')}
+   725→              initial={{ opacity: 0, y: -8 }}
+   726→              animate={{ opacity: 1, y: 0 }}
+   727→              exit={{ opacity: 0, y: -4 }}
+   728→              transition={{ duration: 0.2 }}
+   729→              className="mt-2 flex items-center justify-center gap-2 sm:gap-3"
+   730→            >
+   731→              {currentCoordUnrevealed && (
+   732→                <MapPin
+   733→                  className="h-5 w-5 sm:h-6 sm:w-6 text-gold pin-bounce"
+   734→                  aria-hidden
+   735→                />
+   736→              )}
+   737→              <span className="text-xs uppercase tracking-wider text-muted-foreground">
+   738→                Now calling
+   739→              </span>
+   740→              <span
+   741→                className={cn(
+   742→                  'font-display text-3xl sm:text-4xl font-bold gold-text',
+   743→                  currentCoordUnrevealed && 'coord-dramatic animate-pulse-ring rounded-md px-2',
+   744→                )}
+   745→                aria-live="polite"
+   746→              >
+   747→                {currentCoord}
+   748→              </span>
+   749→              {currentCoordUnrevealed ? (
+   750→                <span className="text-xs text-gold/80 font-medium animate-pulse">
+   751→                  Tap to reveal!
+   752→                </span>
+   753→              ) : (
+   754→                <span className="text-xs text-emerald-500 font-medium">
+   755→                  Revealed ✓
+   756→                </span>
+   757→              )}
+   758→            </motion.div>
+   759→          )}
+   760→        </AnimatePresence>
+   761→      </header>
+   762→
+   763→      {/* --- Paused banner --- */}
+   764→      <AnimatePresence>
+   765→        {status === 'paused' && (
+   766→          <motion.div
+   767→            initial={{ opacity: 0, y: -10 }}
+   768→            animate={{ opacity: 1, y: 0 }}
+   769→            exit={{ opacity: 0, y: -10 }}
+   770→            className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex items-center gap-3"
+   771→            role="status"
+   772→          >
+   773→            <Pause className="h-5 w-5 text-amber-500 shrink-0" />
+   774→            <div className="min-w-0">
+   775→              <div className="font-semibold text-amber-500">
+   776→                Game paused by host
+   777→              </div>
+   778→              <div className="text-xs text-muted-foreground">
+   779→                Hang tight — the game will resume shortly.
+   780→              </div>
+   781→            </div>
+   782→          </motion.div>
+   783→        )}
+   784→      </AnimatePresence>
+   785→
+   786→      {/* --- Money summary (3 pills) --- */}
+   787→      <section
+   788→        aria-label="Money summary"
+   789→        className="grid grid-cols-3 gap-2 sm:gap-3"
+   790→      >
+   791→        <MoneyStat
+   792→          label="At Risk"
+   793→          value={me.runningTotal}
+   794→          tone="gold"
+   795→          icon={<Coins className="h-3 w-3" />}
+   796→          hint="Running total"
+   797→          variant="at-risk"
+   798→        />
+   799→        <MoneyStat
+   800→          label="Banked"
+   801→          value={me.bankedTotal}
+   802→          tone="ocean"
+   803→          icon={<Landmark className="h-3 w-3" />}
+   804→          hint="Safe forever"
+   805→          variant="banked"
+   806→        />
+   807→        <MoneyStat
+   808→          label="Score"
+   809→          value={finalScore}
+   810→          tone="default"
+   811→          icon={<Trophy className="h-3 w-3" />}
+   812→          hint="Banked + at risk"
+   813→        />
+   814→      </section>
+   815→
+   816→      {/* --- Main grid: board+inventory left, activity+rivals right --- */}
+   817→      <div className="grid lg:grid-cols-[1fr_340px] gap-4 flex-1">
+   818→        {/* Left column */}
+   819→        <div className="flex flex-col gap-4 min-w-0">
+   820→          {/* The board */}
+   821→          <section
+   822→            aria-label="Your treasure board"
+   823→            className="pirate-card p-4 sm:p-6 relative"
+   824→          >
+   825→            {/* Reveal flash — gold sweep outward, fired whenever a square
+   826→                transitions hidden → revealed on my board. Re-keyed span so
+   827→                the CSS animation re-runs each reveal. */}
+   828→            {boardFlashKey > 0 && (
+   829→              <span
+   830→                key={boardFlashKey}
+   831→                className="board-reveal-flash pointer-events-none absolute inset-0 rounded-xl"
+   832→                aria-hidden
+   833→              />
+   834→            )}
+   835→            {currentCoord && currentCoordUnrevealed ? (
+   836→              <div className="mb-3 text-center text-sm text-gold/90 font-medium animate-pulse flex items-center justify-center gap-1.5">
+   837→                <MapPin className="h-3.5 w-3.5" />
+   838→                Tap {currentCoord} to reveal!
+   839→              </div>
+   840→            ) : !currentCoord ? (
+   841→              <div className="mb-3 text-center text-sm text-muted-foreground flex items-center justify-center gap-1.5">
+   842→                <MapPin className="h-3.5 w-3.5 text-gold/70 pin-bounce" />
+   843→                Waiting for the captain to call a coordinate…
+   844→              </div>
+   845→            ) : null}
+   846→            <GameBoard
+   847→              board={me.board}
+   848→              size="lg"
+   849→              highlightCoord={currentCoord}
+   850→              revealableCoords={revealableCoords}
+   851→              onSquareClick={onSquareClick}
+   852→              disabled={boardDisabled}
+   853→            />
+   854→            {boardDisabled && status === 'playing' && locked && (
+   855→              <div className="mt-3 text-center text-xs text-amber-500/80">
+   856→                Board locked by host — wait for unlock.
+   857→              </div>
+   858→            )}
+   859→            {status === 'ended' && (
+   860→              <div className="mt-3 text-center text-xs text-muted-foreground">
+   861→                Game ended — calculating results…
+   862→              </div>
+   863→            )}
+   864→          </section>
+   865→
+   866→          {/* Inventory */}
+   867→          <section
+   868→            aria-label="Defensive inventory"
+   869→            className="pirate-panel p-4 sm:p-6"
+   870→          >
+   871→            <div className="flex items-center gap-2 mb-3">
+   872→              <Shield className="h-4 w-4 text-muted-foreground" />
+   873→              <h2 className="font-semibold text-sm">Defensive Items</h2>
+   874→              <Badge variant="secondary" className="ml-auto">
+   875→                {me.inventory.length}
+   876→              </Badge>
+   877→            </div>
+   878→            {me.inventory.length === 0 ? (
+   879→              <div className="text-center text-xs text-muted-foreground py-4 flex flex-col items-center gap-2">
+   880→                <PackageOpen className="h-8 w-8 opacity-40" />
+   881→                <span>No defensive items yet — find Shield/Mirror squares.</span>
+   882→              </div>
+   883→            ) : (
+   884→              <div className="flex flex-wrap gap-2">
+   885→                {me.inventory.map((item, idx) => {
+   886→                  const meta = POWERS[item.type];
+   887→                  return (
+   888→                    <div
+   889→                      key={`${item.type}-${idx}`}
+   890→                      className={cn(
+   891→                        'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm font-medium inventory-chip',
+   892→                        powerChipClass(item.type),
+   893→                      )}
+   894→                      title={meta.description}
+   895→                      style={{ animationDelay: `${(idx % 6) * 0.4}s` }}
+   896→                    >
+   897→                      <PowerIcon power={item.type} />
+   898→                      <span className={powerTextClass(item.type)}>
+   899→                        {meta.label}
+   900→                      </span>
+   901→                    </div>
+   902→                  );
+   903→                })}
+   904→              </div>
+   905→            )}
+   906→          </section>
+   907→        </div>
+   908→
+   909→        {/* Right column */}
+   910→        <div className="flex flex-col gap-4 min-w-0">
+   911→          {/* Rivals strip */}
+   912→          <section aria-label="Rivals" className="pirate-panel p-4">
+   913→            <div className="flex items-center gap-2 mb-3">
+   914→              <Users className="h-4 w-4 text-muted-foreground" />
+   915→              <h2 className="font-semibold text-sm">Rivals</h2>
+   916→              <Badge variant="secondary" className="ml-auto">
+   917→                {rivals.length}
+   918→              </Badge>
+   919→            </div>
+   920→            {rivals.length === 0 ? (
+   921→              <div className="text-xs text-muted-foreground text-center py-3">
+   922→                You&apos;re the only player. Invite friends!
+   923→              </div>
+   924→            ) : (
+   925→              <div className="flex gap-2 overflow-x-auto scroll-thin pb-2 -mx-1 px-1">
+   926→                {rivals.map((r) => (
+   927→                  <div
+   928→                    key={r.id}
+   929→                    className="shrink-0 w-32 rounded-lg border border-border/70 bg-card/60 p-2.5 flex flex-col gap-1"
+   930→                  >
+   931→                    <div className="flex items-center gap-1.5 min-w-0">
+   932→                      <StatusDot connected={r.connected} />
+   933→                      <span className="text-xs font-semibold truncate">
+   934→                        {r.name}
+   935→                      </span>
+   936→                      {r.isHost && (
+   937→                        <Crown className="h-3 w-3 text-gold shrink-0" />
+   938→                      )}
+   939→                    </div>
+   940→                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+   941→                      <span title="Running total" className="font-mono">
+   942→                        {formatMoney(r.runningTotal)}
+   943→                      </span>
+   944→                      <span title="Banked" className="text-ocean font-mono">
+   945→                        {formatMoney(r.bankedTotal)}
+   946→                      </span>
+   947→                    </div>
+   948→                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+   949→                      <Shield className="h-3 w-3" />
+   950→                      <span>
+   951→                        {r.inventoryCount}{' '}
+   952→                        {r.inventoryCount === 1 ? 'item' : 'items'}
+   953→                      </span>
+   954→                    </div>
+   955→                  </div>
+   956→                ))}
+   957→              </div>
+   958→            )}
+   959→          </section>
+   960→
+   961→          {/* Activity log */}
+   962→          <section
+   963→            aria-label="Your activity log"
+   964→            className="pirate-panel parchment-scroll p-4 flex-1 min-h-0 flex flex-col"
+   965→          >
+   966→            <div className="flex items-center gap-2 mb-3">
+   967→              <History className="h-4 w-4 text-muted-foreground" />
+   968→              <h2 className="font-semibold text-sm">Your Activity</h2>
+   969→            </div>
+   970→            <div className="max-h-64 overflow-y-auto scroll-thin -mx-1 px-1 flex flex-col gap-1.5">
+   971→              {recentHistory.length === 0 ? (
+   972→                <div className="text-xs text-muted-foreground text-center py-3">
+   973→                  No moves yet. Tap a called coordinate to start your treasure
+   974→                  hunt!
+   975→                </div>
+   976→              ) : (
+   977→                recentHistory.map((entry, idx) => {
+   978→                  const meta = HISTORY_KIND_META[entry.kind];
+   979→                  const Icon = meta.icon;
+   980→                  return (
+   981→                    <article
+   982→                      key={`${entry.at}-${idx}`}
+   983→                      className={cn(
+   984→                        'flex items-start gap-2 rounded-md border border-border/40 border-l-[3px] bg-card/40 px-2 py-1.5 text-xs',
+   985→                        meta.border,
+   986→                        idx === 0 && 'activity-row-new border-l-gold',
+   987→                      )}
+   988→                    >
+   989→                      <div
+   990→                        className={cn(
+   991→                          'mt-0.5 rounded p-1 shrink-0',
+   992→                          meta.bg,
+   993→                        )}
+   994→                      >
+   995→                        <Icon className={cn('h-3 w-3', meta.color)} />
+   996→                      </div>
+   997→                      <div className="flex-1 min-w-0">
+   998→                        <div className="text-foreground break-words">
+   999→                          {entry.coord && (
+  1000→                            <span className="font-mono font-bold text-gold mr-1">
+  1001→                              {entry.coord}
+  1002→                            </span>
+  1003→                          )}
+  1004→                          {entry.text}
+  1005→                        </div>
+  1006→                        <div className="text-[10px] text-muted-foreground">
+  1007→                          {formatClock(entry.at)}
+  1008→                        </div>
+  1009→                      </div>
+  1010→                      {typeof entry.delta === 'number' && entry.delta !== 0 && (
+  1011→                        <span
+  1012→                          className={cn(
+  1013→                            'font-mono font-semibold tabular-nums shrink-0',
+  1014→                            entry.delta > 0
+  1015→                              ? 'text-emerald-500'
+  1016→                              : 'text-red-500',
+  1017→                          )}
+  1018→                        >
+  1019→                          {entry.delta > 0 ? '+' : ''}
+  1020→                          {formatMoney(entry.delta)}
+  1021→                        </span>
+  1022→                      )}
+  1023→                    </article>
+  1024→                  );
+  1025→                })
+  1026→              )}
+  1027→            </div>
+  1028→          </section>
+  1029→        </div>
+  1030→      </div>
+  1031→
+  1032→      {/* --- Target Selection Modal --- */}
+  1033→      <TargetSelectionModal
+  1034→        open={!!pendingTargetPower}
+  1035→        power={pendingTargetPower}
+  1036→        rivals={rivals}
+  1037→        busy={selectingTarget}
+  1038→        onSelect={handleSelectTarget}
+  1039→        onClose={() => !selectingTarget && setPendingTargetPower(null)}
+  1040→      />
+  1041→
+  1042→      {/* --- Defense Modal --- */}
+  1043→      <DefenseModal
+  1044→        prompt={defensePrompt}
+  1045→        busy={resolving}
+  1046→        onResolve={handleResolveDefense}
+  1047→      />
+  1048→
+  1049→      {/* --- Quick reactions (floating emoji palette) --- */}
+  1050→      <EmoteBar />
+  1051→      <ChatPanel />
+  1052→    </div>
+  1053→  );
+  1054→}
+  1055→

@@ -1,0 +1,71 @@
+// Pirate Game - Prisma schema (SQLite)
+// Real-time multiplayer pirate treasure game
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Game {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  status    String   @default("lobby") // lobby | playing | paused | ended
+  hostName  String   @default("Host")
+  hostToken String   @unique
+  createdAt DateTime @default(now())
+  startedAt DateTime?
+  endedAt   DateTime?
+  players   Player[]
+  events    GameEvent[]
+  results   GameResult[]
+
+  @@index([code])
+}
+
+model Player {
+  id         String   @id @default(cuid())
+  gameId      String
+  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  name       String
+  finalScore Int      @default(0)
+  banked     Int      @default(0)
+  running    Int      @default(0)
+  connected  Boolean  @default(false)
+  joinedAt   DateTime @default(now())
+  leftAt     DateTime?
+  statsJson  String   @default("{}") // serialized PlayerStats
+  results    GameResult[]
+
+  @@index([gameId])
+}
+
+model GameEvent {
+  id        String   @id @default(cuid())
+  gameId     String
+  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  type      String // player-joined | coordinate-called | square-revealed | power-used | defense-used | host-action | system
+  message   String
+  actor     String   @default("system")
+  metaJson  String   @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([gameId, createdAt])
+}
+
+model GameResult {
+  id        String   @id @default(cuid())
+  gameId     String
+  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  playerId   String
+  player     Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  rank       Int
+  score      Int
+  award      String? // award category won
+  createdAt DateTime @default(now())
+
+  @@index([gameId, rank])
+}

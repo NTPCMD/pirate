@@ -1,0 +1,1691 @@
+     1→'use client';
+     2→
+     3→// ============================================================================
+     4→// Host Dashboard — real-time admin console for the Pirate Game host.
+     5→// Renders dense, organized panels driven by the server-authoritative
+     6→// HostGameState snapshot in the Zustand store.
+     7→// ============================================================================
+     8→
+     9→import { useEffect, useMemo, useState } from 'react';
+    10→import { motion, AnimatePresence } from 'framer-motion';
+    11→import { formatDistanceToNow } from 'date-fns';
+    12→import {
+    13→  Crosshair,
+    14→  Coins,
+    15→  Sparkles,
+    16→  Shield,
+    17→  UserPlus,
+    18→  UserMinus,
+    19→  Settings,
+    20→  Info,
+    21→  Pause,
+    22→  Play,
+    23→  Lock,
+    24→  Unlock,
+    25→  Undo2,
+    26→  Download,
+    27→  LogOut,
+    28→  Trophy,
+    29→  Users,
+    30→  Activity as ActivityIcon,
+    31→  History,
+    32→  Plus,
+    33→  Minus,
+    34→  Save,
+    35→  Send,
+    36→  Copy,
+    37→  Ban,
+    38→  Bot as BotIcon,
+    39→  ChevronRight,
+    40→  Crown,
+    41→  Medal,
+    42→  MapPin,
+    43→  Skull,
+    44→  Eye,
+    45→  RotateCcw,
+    46→  Trash2,
+    47→  Timer,
+    48→  Square,
+    49→  type LucideIcon,
+    50→} from 'lucide-react';
+    51→
+    52→import { useGameStore } from '@/hooks/pirate/useGameStore';
+    53→import { useSound } from '@/components/pirate/SoundManager';
+    54→import { useTimerSound } from '@/hooks/pirate/useTimerSound';
+    55→import {
+    56→  GameBoard,
+    57→  PowerIcon,
+    58→  powerChipClass,
+    59→  powerTextClass,
+    60→  MoneyPill,
+    61→  StatusDot,
+    62→} from '@/components/pirate/common';
+    63→import { EmoteBar } from '@/components/pirate/EmoteBar';
+    64→import { ChatPanel } from '@/components/pirate/ChatPanel';
+    65→import {
+    66→  COLUMNS,
+    67→  BOARD_SIZE,
+    68→  POWERS,
+    69→  isValidCoord,
+    70→  formatMoney,
+    71→  type Player,
+    72→  type PlayerStats,
+    73→  type PowerType,
+    74→  type ActivityEvent,
+    75→  type GameStatus,
+    76→} from '@/lib/pirate/types';
+    77→
+    78→import { Button } from '@/components/ui/button';
+    79→import { Card } from '@/components/ui/card';
+    80→import { Input } from '@/components/ui/input';
+    81→import { Badge } from '@/components/ui/badge';
+    82→import { Label } from '@/components/ui/label';
+    83→import { Separator } from '@/components/ui/separator';
+    84→import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+    85→import {
+    86→  Dialog,
+    87→  DialogContent,
+    88→  DialogHeader,
+    89→  DialogTitle,
+    90→  DialogDescription,
+    91→} from '@/components/ui/dialog';
+    92→import {
+    93→  AlertDialog,
+    94→  AlertDialogAction,
+    95→  AlertDialogCancel,
+    96→  AlertDialogContent,
+    97→  AlertDialogDescription,
+    98→  AlertDialogFooter,
+    99→  AlertDialogHeader,
+   100→  AlertDialogTitle,
+   101→  AlertDialogTrigger,
+   102→} from '@/components/ui/alert-dialog';
+   103→import {
+   104→  Select,
+   105→  SelectContent,
+   106→  SelectItem,
+   107→  SelectTrigger,
+   108→  SelectValue,
+   109→} from '@/components/ui/select';
+   110→import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+   111→import { cn } from '@/lib/utils';
+   112→
+   113→// ============================================================================
+   114→// Static lookups & helpers
+   115→// ============================================================================
+   116→
+   117→const STATUS_BADGE_CLASS: Record<GameStatus, string> = {
+   118→  lobby: 'bg-secondary/80 text-secondary-foreground border-border',
+   119→  playing: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40',
+   120→  paused: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40',
+   121→  ended: 'bg-destructive/15 text-destructive border-destructive/40',
+   122→};
+   123→
+   124→const STATUS_LABEL: Record<GameStatus, string> = {
+   125→  lobby: 'Lobby',
+   126→  playing: 'Playing',
+   127→  paused: 'Paused',
+   128→  ended: 'Ended',
+   129→};
+   130→
+   131→type Tone = NonNullable<ActivityEvent['tone']>;
+   132→
+   133→const TONE_TEXT: Record<Tone, string> = {
+   134→  neutral: 'text-muted-foreground',
+   135→  good: 'text-emerald-500',
+   136→  bad: 'text-destructive',
+   137→  epic: 'text-gold',
+   138→  info: 'text-ocean',
+   139→};
+   140→
+   141→const TONE_BG: Record<Tone, string> = {
+   142→  neutral: 'bg-muted/40 border-border',
+   143→  good: 'bg-emerald-500/10 border-emerald-500/30',
+   144→  bad: 'bg-destructive/10 border-destructive/30',
+   145→  epic: 'bg-gold/10 border-gold/40',
+   146→  info: 'bg-ocean/10 border-ocean/30',
+   147→};
+   148→
+   149→const ACTIVITY_ICON: Record<ActivityEvent['type'], LucideIcon> = {
+   150→  'coordinate-called': Crosshair,
+   151→  'square-revealed': Coins,
+   152→  'power-used': Sparkles,
+   153→  'defense-used': Shield,
+   154→  'player-joined': UserPlus,
+   155→  'player-left': UserMinus,
+   156→  'player-reconnected': UserPlus,
+   157→  'host-action': Settings,
+   158→  system: Info,
+   159→};
+   160→
+   161→type ActivityFilter = 'all' | 'players' | 'powers' | 'host';
+   162→
+   163→const ACTIVITY_FILTER_CAT: Record<ActivityEvent['type'], ActivityFilter | 'coord' | 'system'> = {
+   164→  'player-joined': 'players',
+   165→  'player-left': 'players',
+   166→  'player-reconnected': 'players',
+   167→  'coordinate-called': 'coord',
+   168→  'square-revealed': 'coord',
+   169→  'power-used': 'powers',
+   170→  'defense-used': 'powers',
+   171→  'host-action': 'host',
+   172→  system: 'system',
+   173→};
+   174→
+   175→const STAT_FIELDS: Array<{ key: keyof PlayerStats; label: string; money?: boolean }> = [
+   176→  { key: 'moneyFound', label: 'Cash Found', money: true },
+   177→  { key: 'moneyStolen', label: 'Stolen (Anchor)', money: true },
+   178→  { key: 'moneyGiven', label: 'Received (Gift)', money: true },
+   179→  { key: 'moneyLost', label: 'Lost to Attacks', money: true },
+   180→  { key: 'biggestSingleFind', label: 'Biggest Find', money: true },
+   181→  { key: 'biggestMultiplierGain', label: 'Best Multiplier Gain', money: true },
+   182→  { key: 'timesAttacked', label: 'Times Attacked' },
+   183→  { key: 'timesShielded', label: 'Shields Used' },
+   184→  { key: 'timesMirrored', label: 'Mirrors Used' },
+   185→  { key: 'cashSquaresFound', label: 'Cash Squares' },
+   186→  { key: 'powerSquaresFound', label: 'Power Squares' },
+   187→];
+   188→
+   189→function fmtTime(ts: number): string {
+   190→  return new Date(ts).toLocaleTimeString('en-US', { hour12: false });
+   191→}
+   192→
+   193→function playerFinalScore(p: Player): number {
+   194→  return p.runningTotal + p.bankedTotal;
+   195→}
+   196→
+   197→/** Triggers a re-render every `intervalMs` so relative timestamps stay fresh. */
+   198→function useNow(intervalMs = 30_000): number {
+   199→  const [now, setNow] = useState<number>(() => Date.now());
+   200→  useEffect(() => {
+   201→    const id = window.setInterval(() => setNow(Date.now()), intervalMs);
+   202→    return () => window.clearInterval(id);
+   203→  }, [intervalMs]);
+   204→  return now;
+   205→}
+   206→
+   207→// ============================================================================
+   208→// Entry point
+   209→// ============================================================================
+   210→
+   211→export default function HostDashboard() {
+   212→  const hostState = useGameStore((s) => s.hostState);
+   213→  const code = useGameStore((s) => s.code);
+   214→
+   215→  if (!hostState) {
+   216→    return (
+   217→      <div className="min-h-[calc(100vh-3rem)] flex items-center justify-center p-8">
+   218→        <div className="pirate-card p-6 text-center">
+   219→          <div className="display-font text-2xl text-gold mb-2">Reconnecting to game…</div>
+   220→          <div className="text-sm text-muted-foreground">
+   221→            {code ? `Game ${code}` : 'Establishing host session'}
+   222→          </div>
+   223→        </div>
+   224→      </div>
+   225→    );
+   226→  }
+   227→
+   228→  return <DashboardInner />;
+   229→}
+   230→
+   231→function DashboardInner() {
+   232→  const [inspectingId, setInspectingId] = useState<string | null>(null);
+   233→  // Refresh relative timestamps every 30s.
+   234→  useNow(30_000);
+   235→
+   236→  return (
+   237→    <div className="min-h-[calc(100vh-3rem)] flex flex-col">
+   238→      <TopControlBar />
+   239→
+   240→      <div className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6">
+   241→        {/* Mobile tabs */}
+   242→        <Tabs defaultValue="leaderboard" className="lg:hidden">
+   243→          <TabsList className="w-full">
+   244→            <TabsTrigger value="leaderboard" className="flex-1 gap-1">
+   245→              <Trophy className="h-3.5 w-3.5" /> Board
+   246→            </TabsTrigger>
+   247→            <TabsTrigger value="players" className="flex-1 gap-1">
+   248→              <Users className="h-3.5 w-3.5" /> Players
+   249→            </TabsTrigger>
+   250→            <TabsTrigger value="activity" className="flex-1 gap-1">
+   251→              <ActivityIcon className="h-3.5 w-3.5" /> Feed
+   252→            </TabsTrigger>
+   253→            <TabsTrigger value="controls" className="flex-1 gap-1">
+   254→              <Settings className="h-3.5 w-3.5" /> Ctrl
+   255→            </TabsTrigger>
+   256→          </TabsList>
+   257→          <TabsContent value="leaderboard" className="space-y-4 mt-4">
+   258→            <TimerControlPanel />
+   259→            <CoordinateCallerPanel />
+   260→            <LeaderboardPanel onInspect={setInspectingId} />
+   261→          </TabsContent>
+   262→          <TabsContent value="players" className="space-y-4 mt-4">
+   263→            <PlayerListPanel onInspect={setInspectingId} />
+   264→          </TabsContent>
+   265→          <TabsContent value="activity" className="space-y-4 mt-4">
+   266→            <ActivityFeedPanel />
+   267→            <UndoPanel />
+   268→          </TabsContent>
+   269→          <TabsContent value="controls" className="space-y-4 mt-4">
+   270→            <TimerControlPanel />
+   271→            <CoordinateCallerPanel />
+   272→            <UndoPanel />
+   273→          </TabsContent>
+   274→        </Tabs>
+   275→
+   276→        {/* Desktop grid */}
+   277→        <div className="hidden lg:grid lg:grid-cols-3 gap-6">
+   278→          <div className="lg:col-span-2 space-y-6">
+   279→            <TimerControlPanel />
+   280→            <CoordinateCallerPanel />
+   281→            <LeaderboardPanel onInspect={setInspectingId} />
+   282→            <PlayerListPanel onInspect={setInspectingId} />
+   283→          </div>
+   284→          <div className="lg:col-span-1 space-y-6">
+   285→            <UndoPanel />
+   286→            <ActivityFeedPanel />
+   287→          </div>
+   288→        </div>
+   289→      </div>
+   290→
+   291→      <InspectPlayerDialog
+   292→        playerId={inspectingId}
+   293→        onClose={() => setInspectingId(null)}
+   294→      />
+   295→
+   296→      {/* Quick reactions — the host can cheer along with the players. */}
+   297→      <EmoteBar />
+   298→      <ChatPanel />
+   299→    </div>
+   300→  );
+   301→}
+   302→
+   303→// ============================================================================
+   304→// Top control bar (sticky)
+   305→// ============================================================================
+   306→
+   307→function TopControlBar() {
+   308→  const hostState = useGameStore((s) => s.hostState)!;
+   309→  const code = useGameStore((s) => s.code);
+   310→  const pauseGame = useGameStore((s) => s.pauseGame);
+   311→  const resumeGame = useGameStore((s) => s.resumeGame);
+   312→  const endGame = useGameStore((s) => s.endGame);
+   313→  const hostRevealAll = useGameStore((s) => s.hostRevealAll);
+   314→  const hostLockPlayers = useGameStore((s) => s.hostLockPlayers);
+   315→  const hostUndo = useGameStore((s) => s.hostUndo);
+   316→  const hostExport = useGameStore((s) => s.hostExport);
+   317→  const reset = useGameStore((s) => s.reset);
+   318→  const pushToast = useGameStore((s) => s.pushToast);
+   319→  const { play } = useSound();
+   320→
+   321→  const status = hostState.status;
+   322→  const locked = hostState.locked;
+   323→  const currentCoord = hostState.currentCoord;
+   324→  const undoStack = hostState.undoStack;
+   325→  const lastUndoDesc = undoStack.length > 0 ? undoStack[undoStack.length - 1].description : '';
+   326→
+   327→  const handleCopy = async () => {
+   328→    if (!code) return;
+   329→    try {
+   330→      await navigator.clipboard.writeText(code);
+   331→      play('click');
+   332→      pushToast({ title: 'Code copied', description: code, tone: 'good' });
+   333→    } catch {
+   334→      pushToast({ title: 'Copy failed', tone: 'bad' });
+   335→    }
+   336→  };
+   337→
+   338→  const handleExport = async () => {
+   339→    const result = await hostExport();
+   340→    if (result?.error) {
+   341→      pushToast({ title: 'Export failed', description: String(result.error), tone: 'bad' });
+   342→      return;
+   343→    }
+   344→    const json = JSON.stringify(result, null, 2);
+   345→    const blob = new Blob([json], { type: 'application/json' });
+   346→    const url = URL.createObjectURL(blob);
+   347→    const a = document.createElement('a');
+   348→    a.href = url;
+   349→    a.download = `pirate-game-${code ?? 'export'}-${Date.now()}.json`;
+   350→    document.body.appendChild(a);
+   351→    a.click();
+   352→    document.body.removeChild(a);
+   353→    URL.revokeObjectURL(url);
+   354→    pushToast({ title: 'Results exported', tone: 'good' });
+   355→  };
+   356→
+   357→  return (
+   358→    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+   359→      <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 flex flex-wrap items-center gap-2 sm:gap-3">
+   360→        {/* Game code + copy */}
+   361→        <div className="flex items-center gap-1.5">
+   362→          <Badge
+   363→            variant="outline"
+   364→            className="font-mono text-base px-2.5 py-1 border-gold/40 text-gold"
+   365→            aria-label={`Game code ${code ?? ''}`}
+   366→          >
+   367→            {code ?? '------'}
+   368→          </Badge>
+   369→          <Tooltip>
+   370→            <TooltipTrigger asChild>
+   371→              <Button size="icon" variant="ghost" onClick={handleCopy} aria-label="Copy game code">
+   372→                <Copy className="h-4 w-4" />
+   373→              </Button>
+   374→            </TooltipTrigger>
+   375→            <TooltipContent>Copy game code</TooltipContent>
+   376→          </Tooltip>
+   377→        </div>
+   378→
+   379→        {/* Status badge */}
+   380→        <Badge
+   381→          variant="outline"
+   382→          className={cn('uppercase tracking-wide text-xs', STATUS_BADGE_CLASS[status])}
+   383→        >
+   384→          {STATUS_LABEL[status]}
+   385→        </Badge>
+   386→
+   387→        {/* Spectator count — only show when there are spectators */}
+   388→        {(hostState.spectatorCount ?? 0) > 0 && (
+   389→          <Tooltip>
+   390→            <TooltipTrigger asChild>
+   391→              <Badge variant="outline" className="gap-1 text-xs border-ocean/40 text-ocean bg-ocean/10">
+   392→                <Eye className="h-3 w-3" /> {hostState.spectatorCount} watching
+   393→              </Badge>
+   394→            </TooltipTrigger>
+   395→            <TooltipContent>Spectators currently observing this game</TooltipContent>
+   396→          </Tooltip>
+   397→        )}
+   398→
+   399→        {/* Current coordinate */}
+   400→        <div className="flex items-center gap-1.5 ml-1 sm:ml-2">
+   401→          <MapPin className="h-4 w-4 text-gold pin-bounce" />
+   402→          <span className="text-[10px] uppercase tracking-wide text-muted-foreground hidden sm:inline">
+   403→            Now
+   404→          </span>
+   405→          <span
+   406→            className={cn(
+   407→              'text-2xl sm:text-3xl font-bold text-gold display-font tabular-nums min-w-[2.5rem] text-center',
+   408→              currentCoord && 'coord-dramatic',
+   409→            )}
+   410→            aria-live="polite"
+   411→          >
+   412→            {currentCoord ?? '—'}
+   413→          </span>
+   414→        </div>
+   415→
+   416→        {/* Action buttons */}
+   417→        <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-wrap">
+   418→          {status === 'playing' && (
+   419→            <>
+   420→              <Button size="sm" variant="outline" className="btn-pirate" onClick={() => { play('click'); pauseGame(); }}>
+   421→                <Pause className="h-4 w-4" /> Pause
+   422→              </Button>
+   423→              <Button
+   424→                size="sm"
+   425→                variant="outline"
+   426→                className="btn-pirate"
+   427→                onClick={() => { play('click'); hostLockPlayers(!locked); }}
+   428→                aria-label={locked ? 'Unlock players' : 'Lock players'}
+   429→              >
+   430→                {locked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+   431→                {locked ? 'Unlock' : 'Lock'}
+   432→              </Button>
+   433→              <AlertDialog>
+   434→                <AlertDialogTrigger asChild>
+   435→                  <Button size="sm" variant="outline" className="btn-pirate">
+   436→                    <Eye className="h-4 w-4" /> Reveal All
+   437→                  </Button>
+   438→                </AlertDialogTrigger>
+   439→                <AlertDialogContent>
+   440→                  <AlertDialogHeader>
+   441→                    <AlertDialogTitle>Reveal all squares?</AlertDialogTitle>
+   442→                    <AlertDialogDescription>
+   443→                      Every hidden square on every player&apos;s board will be revealed. This cannot be undone.
+   444→                    </AlertDialogDescription>
+   445→                  </AlertDialogHeader>
+   446→                  <AlertDialogFooter>
+   447→                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+   448→                    <AlertDialogAction onClick={() => { play('click'); hostRevealAll(); }}>
+   449→                      Reveal All
+   450→                    </AlertDialogAction>
+   451→                  </AlertDialogFooter>
+   452→                </AlertDialogContent>
+   453→              </AlertDialog>
+   454→
+   455→              <Tooltip>
+   456→                <TooltipTrigger asChild>
+   457→                  <Button
+   458→                    size="sm"
+   459→                    variant="outline"
+   460→                    className="btn-pirate"
+   461→                    onClick={() => { play('click'); hostUndo(); }}
+   462→                    disabled={undoStack.length === 0}
+   463→                  >
+   464→                    <Undo2 className="h-4 w-4" /> Undo
+   465→                  </Button>
+   466→                </TooltipTrigger>
+   467→                <TooltipContent>
+   468→                  {undoStack.length === 0 ? 'Nothing to undo' : `Last: ${lastUndoDesc}`}
+   469→                </TooltipContent>
+   470→              </Tooltip>
+   471→
+   472→              <EndGameButton onConfirm={() => { play('click'); endGame(); }} />
+   473→            </>
+   474→          )}
+   475→
+   476→          {status === 'paused' && (
+   477→            <>
+   478→              <Button size="sm" variant="default" className="btn-pirate" onClick={() => { play('click'); resumeGame(); }}>
+   479→                <Play className="h-4 w-4" /> Resume
+   480→              </Button>
+   481→              <EndGameButton onConfirm={() => { play('click'); endGame(); }} />
+   482→            </>
+   483→          )}
+   484→
+   485→          {status === 'ended' && (
+   486→            <>
+   487→              <Button size="sm" variant="default" className="btn-pirate" onClick={handleExport}>
+   488→                <Download className="h-4 w-4" /> Export
+   489→              </Button>
+   490→              <Button size="sm" variant="outline" className="btn-pirate" onClick={() => { play('click'); reset(); }}>
+   491→                <RotateCcw className="h-4 w-4" /> New Game
+   492→              </Button>
+   493→            </>
+   494→          )}
+   495→
+   496→          <Separator orientation="vertical" className="h-6 mx-0.5" />
+   497→          <Button
+   498→            size="sm"
+   499→            variant="ghost"
+   500→            className="btn-pirate"
+   501→            onClick={() => { play('click'); reset(); }}
+   502→            aria-label="Leave game"
+   503→          >
+   504→            <LogOut className="h-4 w-4" /> Leave
+   505→          </Button>
+   506→        </div>
+   507→      </div>
+   508→    </header>
+   509→  );
+   510→}
+   511→
+   512→function EndGameButton({ onConfirm }: { onConfirm: () => void }) {
+   513→  return (
+   514→    <AlertDialog>
+   515→      <AlertDialogTrigger asChild>
+   516→        <Button size="sm" variant="destructive" className="btn-pirate">
+   517→          <Skull className="h-4 w-4" /> End Game
+   518→        </Button>
+   519→      </AlertDialogTrigger>
+   520→      <AlertDialogContent>
+   521→        <AlertDialogHeader>
+   522→          <AlertDialogTitle>End the game?</AlertDialogTitle>
+   523→          <AlertDialogDescription>
+   524→            This will end the game immediately, lock the board, and compute final results &amp; awards.
+   525→          </AlertDialogDescription>
+   526→        </AlertDialogHeader>
+   527→        <AlertDialogFooter>
+   528→          <AlertDialogCancel>Cancel</AlertDialogCancel>
+   529→          <AlertDialogAction onClick={onConfirm}>End Game</AlertDialogAction>
+   530→        </AlertDialogFooter>
+   531→      </AlertDialogContent>
+   532→    </AlertDialog>
+   533→  );
+   534→}
+   535→
+   536→// ============================================================================
+   537→// Round Timer Control Panel — circular countdown + Start/Pause/Resume/Stop
+   538→// ============================================================================
+   539→
+   540→function TimerControlPanel() {
+   541→  const hostState = useGameStore((s) => s.hostState)!;
+   542→  const startTimer = useGameStore((s) => s.startTimer);
+   543→  const pauseTimer = useGameStore((s) => s.pauseTimer);
+   544→  const resumeTimer = useGameStore((s) => s.resumeTimer);
+   545→  const stopTimer = useGameStore((s) => s.stopTimer);
+   546→  const { play } = useSound();
+   547→
+   548→  const timer = hostState.roundTimer;
+   549→  // Drive the countdown tick + beep sounds from the host view too — the
+   550→  // host should hear the same urgency cues the players do.
+   551→  useTimerSound(timer?.remaining, timer?.active);
+   552→
+   553→  // Hide the panel entirely when no timer is configured (duration 0).
+   554→  if (!timer || timer.duration <= 0) return null;
+   555→
+   556→  const { duration, remaining, active } = timer;
+   557→  const status = hostState.status;
+   558→  const isLow = active && remaining <= 3;
+   559→  const progress = duration > 0 ? remaining / duration : 0;
+   560→
+   561→  // SVG ring geometry
+   562→  const RADIUS = 46;
+   563→  const CIRC = 2 * Math.PI * RADIUS;
+   564→  const dashOffset = CIRC * (1 - progress);
+   565→
+   566→  const ringColor = isLow
+   567→    ? 'stroke-destructive'
+   568→    : active
+   569→      ? 'stroke-gold'
+   570→      : 'stroke-ocean';
+   571→
+   572→  const handleStart = () => { play('click'); startTimer(); };
+   573→  const handlePause = () => { play('click'); pauseTimer(); };
+   574→  const handleResume = () => { play('click'); resumeTimer(); };
+   575→  const handleStop = () => { play('click'); stopTimer(); };
+   576→
+   577→  return (
+   578→    <Card className={cn('pirate-card p-4 sm:p-6 overflow-hidden', isLow && 'ring-2 ring-destructive/60')}>
+   579→      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+   580→        {/* Circular countdown */}
+   581→        <div className="relative shrink-0" aria-live="polite">
+   582→          <motion.div
+   583→            animate={
+   584→              isLow
+   585→                ? { scale: [1, 1.06, 1] }
+   586→                : { scale: 1 }
+   587→            }
+   588→            transition={
+   589→              isLow
+   590→                ? { duration: 0.7, repeat: Infinity, ease: 'easeInOut' }
+   591→                : { duration: 0.3 }
+   592→            }
+   593→            className="relative"
+   594→          >
+   595→            <svg
+   596→              width="120"
+   597→              height="120"
+   598→              viewBox="0 0 120 120"
+   599→              className="-rotate-90"
+   600→              aria-hidden
+   601→            >
+   602→              {/* track */}
+   603→              <circle
+   604→                cx="60"
+   605→                cy="60"
+   606→                r={RADIUS}
+   607→                fill="none"
+   608→                strokeWidth="8"
+   609→                className="stroke-muted/40"
+   610→              />
+   611→              {/* progress arc — animated smoothly between ticks */}
+   612→              <motion.circle
+   613→                cx="60"
+   614→                cy="60"
+   615→                r={RADIUS}
+   616→                fill="none"
+   617→                strokeWidth="8"
+   618→                strokeLinecap="round"
+   619→                className={ringColor}
+   620→                strokeDasharray={CIRC}
+   621→                initial={false}
+   622→                animate={{ strokeDashoffset: dashOffset }}
+   623→                transition={
+   624→                  active
+   625→                    ? { duration: 1, ease: 'linear' }
+   626→                    : { duration: 0.25, ease: 'easeOut' }
+   627→                }
+   628→              />
+   629→            </svg>
+   630→            <div className="absolute inset-0 flex flex-col items-center justify-center">
+   631→              <AnimatePresence mode="popLayout" initial={false}>
+   632→                <motion.span
+   633→                  key={remaining}
+   634→                  initial={{ opacity: 0, y: -8, scale: 0.7 }}
+   635→                  animate={{ opacity: 1, y: 0, scale: 1 }}
+   636→                  exit={{ opacity: 0, y: 8, scale: 0.7 }}
+   637→                  transition={{ duration: 0.25, ease: 'easeOut' }}
+   638→                  className={cn(
+   639→                    'font-display font-bold tabular-nums leading-none',
+   640→                    'text-4xl sm:text-5xl',
+   641→                    isLow ? 'text-destructive' : active ? 'text-gold' : 'text-ocean',
+   642→                  )}
+   643→                >
+   644→                  {remaining}
+   645→                </motion.span>
+   646→              </AnimatePresence>
+   647→              <span className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+   648→                seconds
+   649→              </span>
+   650→            </div>
+   651→          </motion.div>
+   652→        </div>
+   653→
+   654→        {/* Info + controls */}
+   655→        <div className="flex-1 min-w-0 w-full sm:w-auto space-y-3">
+   656→          <div className="flex items-center gap-2 flex-wrap">
+   657→            <Timer className={cn('h-4 w-4', active ? 'text-gold' : 'text-ocean')} />
+   658→            <h2 className="display-font text-lg sm:text-xl text-gold">
+   659→              Auto-Advance Timer
+   660→            </h2>
+   661→            <Badge
+   662→              variant="outline"
+   663→              className="ml-auto text-[10px] gap-0.5 border-ocean/40 text-ocean bg-ocean/10"
+   664→            >
+   665→              <Timer className="h-2.5 w-2.5" />
+   666→              Auto · {duration}s
+   667→            </Badge>
+   668→          </div>
+   669→
+   670→          <p className="text-xs text-muted-foreground leading-snug">
+   671→            {active
+   672→              ? isLow
+   673→                ? `Auto-calling next coordinate in ${remaining}s — reveal fast!`
+   674→                : `Next coordinate auto-called in ${remaining}s. Manual calls reset the timer.`
+   675→              : status === 'paused'
+   676→                ? `Game is paused — timer paused at ${remaining}s.`
+   677→                : status === 'ended'
+   678→                  ? `Game ended — timer stopped.`
+   679→                  : `Timer ready — press Start to begin the countdown.`}
+   680→          </p>
+   681→
+   682→          {/* Controls */}
+   683→          <div className="flex flex-wrap gap-2">
+   684→            {!active && status === 'playing' && remaining === duration && (
+   685→              <Button
+   686→                size="sm"
+   687→                onClick={handleStart}
+   688→                className="btn-pirate bg-gold text-gold-foreground hover:bg-gold/90 min-h-[40px]"
+   689→              >
+   690→                <Play className="h-4 w-4" /> Start
+   691→              </Button>
+   692→            )}
+   693→            {!active && status === 'playing' && remaining !== duration && (
+   694→              <Button
+   695→                size="sm"
+   696→                onClick={handleResume}
+   697→                className="btn-pirate bg-gold text-gold-foreground hover:bg-gold/90 min-h-[40px]"
+   698→              >
+   699→                <Play className="h-4 w-4" /> Resume
+   700→              </Button>
+   701→            )}
+   702→            {active && (
+   703→              <Button
+   704→                size="sm"
+   705→                variant="outline"
+   706→                onClick={handlePause}
+   707→                className="btn-pirate min-h-[40px]"
+   708→              >
+   709→                <Pause className="h-4 w-4" /> Pause
+   710→              </Button>
+   711→            )}
+   712→            <Button
+   713→              size="sm"
+   714→              variant="ghost"
+   715→              onClick={handleStop}
+   716→              disabled={!active && remaining === duration}
+   717→              className="btn-pirate text-destructive hover:bg-destructive/10 hover:text-destructive min-h-[40px]"
+   718→            >
+   719→              <Square className="h-4 w-4" /> Stop
+   720→            </Button>
+   721→          </div>
+   722→        </div>
+   723→      </div>
+   724→    </Card>
+   725→  );
+   726→}
+   727→
+   728→// ============================================================================
+   729→// Coordinate caller panel
+   730→// ============================================================================
+   731→
+   732→function CoordinateCallerPanel() {
+   733→  const hostState = useGameStore((s) => s.hostState)!;
+   734→  const callCoordinate = useGameStore((s) => s.callCoordinate);
+   735→  const pushToast = useGameStore((s) => s.pushToast);
+   736→  const { play } = useSound();
+   737→
+   738→  const [coordInput, setCoordInput] = useState('');
+   739→
+   740→  const calledSet = useMemo(
+   741→    () => new Set(hostState.calledCoordinates),
+   742→    [hostState.calledCoordinates],
+   743→  );
+   744→
+   745→  const recent = useMemo(
+   746→    () => [...hostState.calledCoordinates].slice(-10).reverse(),
+   747→    [hostState.calledCoordinates],
+   748→  );
+   749→
+   750→  const submit = (raw: string) => {
+   751→    const coord = raw.trim().toUpperCase();
+   752→    if (!isValidCoord(coord)) {
+   753→      play('error');
+   754→      pushToast({ title: 'Invalid coordinate', description: `"${raw}" is not A1–J10.`, tone: 'bad' });
+   755→      return;
+   756→    }
+   757→    play('click');
+   758→    callCoordinate(coord);
+   759→    setCoordInput('');
+   760→  };
+   761→
+   762→  return (
+   763→    <Card className="pirate-card p-4 sm:p-6">
+   764→      <div className="flex items-center gap-2 mb-3">
+   765→        <Crosshair className="h-5 w-5 text-gold" />
+   766→        <h2 className="display-font text-xl text-gold">Coordinate Caller</h2>
+   767→        <Badge variant="outline" className="ml-auto text-xs">
+   768→          {hostState.calledCoordinates.length} called
+   769→        </Badge>
+   770→      </div>
+   771→
+   772→      <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+   773→        <div className="flex-1">
+   774→          <Label
+   775→            htmlFor="coord-input"
+   776→            className="text-xs uppercase tracking-wide text-muted-foreground"
+   777→          >
+   778→            Coordinate (A1–J10)
+   779→          </Label>
+   780→          <Input
+   781→            id="coord-input"
+   782→            value={coordInput}
+   783→            onChange={(e) => setCoordInput(e.target.value.toUpperCase())}
+   784→            onKeyDown={(e) => { if (e.key === 'Enter') submit(coordInput); }}
+   785→            placeholder="e.g. F7"
+   786→            className="font-mono text-lg uppercase"
+   787→            maxLength={3}
+   788→            inputMode="text"
+   789→            autoCapitalize="characters"
+   790→          />
+   791→        </div>
+   792→        <Button
+   793→          size="lg"
+   794→          onClick={() => submit(coordInput)}
+   795→          className="bg-gold/20 text-gold border border-gold/40 hover:bg-gold/30 min-h-[44px]"
+   796→        >
+   797→          <Send className="h-4 w-4" /> Call
+   798→        </Button>
+   799→      </div>
+   800→
+   801→      {/* Quick-call grid */}
+   802→      <div className="mt-4">
+   803→        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+   804→          Quick Call (tap a square)
+   805→        </div>
+   806→        <div className="grid grid-cols-10 gap-1">
+   807→          {Array.from({ length: BOARD_SIZE * BOARD_SIZE }).map((_, idx) => {
+   808→            const col = COLUMNS[idx % BOARD_SIZE];
+   809→            const row = Math.floor(idx / BOARD_SIZE) + 1;
+   810→            const coord = `${col}${row}`;
+   811→            const isCalled = calledSet.has(coord);
+   812→            const isCurrent = hostState.currentCoord === coord;
+   813→            return (
+   814→              <button
+   815→                key={coord}
+   816→                type="button"
+   817→                onClick={() => submit(coord)}
+   818→                className={cn(
+   819→                  'aspect-square rounded-sm text-[9px] sm:text-[10px] font-mono font-semibold border transition-colors',
+   820→                  'min-h-[36px] flex items-center justify-center',
+   821→                  isCurrent
+   822→                    ? 'bg-gold text-gold-foreground border-gold ring-2 ring-gold/60'
+   823→                    : isCalled
+   824→                      ? 'bg-ocean/20 border-ocean/50 text-ocean'
+   825→                      : 'bg-secondary/60 border-border text-muted-foreground hover:bg-gold/15 hover:border-gold/40 hover:text-gold',
+   826→                )}
+   827→                aria-label={`Call coordinate ${coord}`}
+   828→              >
+   829→                {coord}
+   830→              </button>
+   831→            );
+   832→          })}
+   833→        </div>
+   834→      </div>
+   835→
+   836→      {/* Recent calls */}
+   837→      <div className="mt-4">
+   838→        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
+   839→          <History className="h-3.5 w-3.5" /> Recently Called
+   840→        </div>
+   841→        {recent.length === 0 ? (
+   842→          <div className="text-sm text-muted-foreground italic">No coordinates called yet.</div>
+   843→        ) : (
+   844→          <div className="flex flex-wrap gap-1.5">
+   845→            {recent.map((c, i) => (
+   846→              <Badge
+   847→                key={`${c}-${i}`}
+   848→                variant="outline"
+   849→                className={cn(
+   850→                  'font-mono',
+   851→                  i === 0
+   852→                    ? 'border-gold/60 text-gold bg-gold/10'
+   853→                    : 'border-border text-muted-foreground',
+   854→                )}
+   855→              >
+   856→                {c}
+   857→              </Badge>
+   858→            ))}
+   859→          </div>
+   860→        )}
+   861→      </div>
+   862→    </Card>
+   863→  );
+   864→}
+   865→
+   866→// ============================================================================
+   867→// Live leaderboard
+   868→// ============================================================================
+   869→
+   870→function LeaderboardPanel({ onInspect }: { onInspect: (id: string) => void }) {
+   871→  const hostState = useGameStore((s) => s.hostState)!;
+   872→  const sorted = useMemo(
+   873→    () => [...hostState.players].sort((a, b) => playerFinalScore(b) - playerFinalScore(a)),
+   874→    [hostState.players],
+   875→  );
+   876→
+   877→  return (
+   878→    <Card className="pirate-card p-4 sm:p-6">
+   879→      <div className="flex items-center gap-2 mb-3">
+   880→        <Trophy className="h-5 w-5 text-gold" />
+   881→        <h2 className="display-font text-xl text-gold">Live Leaderboard</h2>
+   882→        <Badge variant="outline" className="ml-auto text-xs">
+   883→          {sorted.length} {sorted.length === 1 ? 'player' : 'players'}
+   884→        </Badge>
+   885→      </div>
+   886→
+   887→      {sorted.length === 0 ? (
+   888→        <div className="text-sm text-muted-foreground italic py-4">No players yet.</div>
+   889→      ) : (
+   890→        <div className="space-y-2">
+   891→          <AnimatePresence>
+   892→            {sorted.map((p, idx) => {
+   893→              const rank = idx + 1;
+   894→              const final = playerFinalScore(p);
+   895→              return (
+   896→                <motion.button
+   897→                  key={p.id}
+   898→                  layout
+   899→                  initial={{ opacity: 0 }}
+   900→                  animate={{ opacity: 1 }}
+   901→                  exit={{ opacity: 0 }}
+   902→                  transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+   903→                  onClick={() => onInspect(p.id)}
+   904→                  className={cn(
+   905→                    'w-full text-left rounded-lg border p-3 flex items-center gap-3 hover:bg-accent/50 transition-colors min-h-[44px]',
+   906→                    rank === 1 && 'border-gold/60 bg-gold/10',
+   907→                    rank === 2 && 'border-zinc-400/40 bg-zinc-400/10',
+   908→                    rank === 3 && 'border-orange-700/40 bg-orange-700/10',
+   909→                    rank > 3 && 'border-border bg-card/60',
+   910→                  )}
+   911→                  aria-label={`Inspect ${p.name}, rank ${rank}`}
+   912→                >
+   913→                  <div className="flex-shrink-0 w-7 text-center">
+   914→                    {rank === 1 ? (
+   915→                      <Crown className="h-6 w-6 mx-auto crown-glow" />
+   916→                    ) : rank === 2 ? (
+   917→                      <Medal className="h-5 w-5 mx-auto medal-silver" />
+   918→                    ) : rank === 3 ? (
+   919→                      <Medal className="h-5 w-5 mx-auto medal-bronze" />
+   920→                    ) : (
+   921→                      <span className="font-mono text-sm text-muted-foreground">{rank}</span>
+   922→                    )}
+   923→                  </div>
+   924→                  <div className="flex-1 min-w-0">
+   925→                    <div className="flex items-center gap-1.5">
+   926→                      <StatusDot connected={p.connected} />
+   927→                      <span className="font-medium truncate">{p.name}</span>
+   928→                      {p.isHost && (
+   929→                        <Badge
+   930→                          variant="outline"
+   931→                          className="text-[10px] py-0 px-1 border-gold/40 text-gold"
+   932→                        >
+   933→                          HOST
+   934→                        </Badge>
+   935→                      )}
+   936→                      {p.isBot && (
+   937→                        <Badge
+   938→                          variant="outline"
+   939→                          className="text-[10px] py-0 px-1 border-ocean/40 text-ocean bg-ocean/10 gap-0.5"
+   940→                        >
+   941→                          <BotIcon className="h-2.5 w-2.5" />
+   942→                          BOT
+   943→                        </Badge>
+   944→                      )}
+   945→                    </div>
+   946→                    <div className="text-[10px] text-muted-foreground">
+   947→                      {p.inventory.length} {p.inventory.length === 1 ? 'item' : 'items'} ·{' '}
+   948→                      {p.board.filter((s) => s.revealed).length}/100 revealed
+   949→                    </div>
+   950→                  </div>
+   951→                  {/* Inventory power icons */}
+   952→                  <div className="hidden sm:flex items-center gap-1 max-w-[120px] flex-wrap justify-end">
+   953→                    {p.inventory.slice(0, 5).map((it, i) => (
+   954→                      <div
+   955→                        key={`${it.type}-${i}`}
+   956→                        className={cn('rounded-md border px-1 py-0.5', powerChipClass(it.type))}
+   957→                      >
+   958→                        <PowerIcon power={it.type} className="h-3 w-3" />
+   959→                      </div>
+   960→                    ))}
+   961→                    {p.inventory.length > 5 && (
+   962→                      <span className="text-[10px] text-muted-foreground">
+   963→                        +{p.inventory.length - 5}
+   964→                      </span>
+   965→                    )}
+   966→                  </div>
+   967→                  {/* Money */}
+   968→                  <div className="flex-shrink-0 text-right">
+   969→                    <div className="font-mono font-bold tabular-nums gold-text-strong">
+   970→                      {formatMoney(final)}
+   971→                    </div>
+   972→                    <div className="text-[10px] text-muted-foreground">
+   973→                      {formatMoney(p.runningTotal)} run · {formatMoney(p.bankedTotal)} bank
+   974→                    </div>
+   975→                  </div>
+   976→                  <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+   977→                </motion.button>
+   978→              );
+   979→            })}
+   980→          </AnimatePresence>
+   981→        </div>
+   982→      )}
+   983→    </Card>
+   984→  );
+   985→}
+   986→
+   987→// ============================================================================
+   988→// Player list panel
+   989→// ============================================================================
+   990→
+   991→function PlayerListPanel({ onInspect }: { onInspect: (id: string) => void }) {
+   992→  const hostState = useGameStore((s) => s.hostState)!;
+   993→  const players = hostState.players;
+   994→
+   995→  return (
+   996→    <Card className="pirate-card p-4 sm:p-6">
+   997→      <div className="flex items-center gap-2 mb-3">
+   998→        <Users className="h-5 w-5 text-ocean" />
+   999→        <h2 className="display-font text-xl text-gold">Players</h2>
+  1000→        <Badge variant="outline" className="ml-auto text-xs">
+  1001→          {players.length} total
+  1002→        </Badge>
+  1003→      </div>
+  1004→
+  1005→      {players.length === 0 ? (
+  1006→        <div className="text-sm text-muted-foreground italic py-4">No players yet.</div>
+  1007→      ) : (
+  1008→        <div className="max-h-96 overflow-y-auto scroll-thin space-y-1.5 pr-1">
+  1009→          {players.map((p) => (
+  1010→            <button
+  1011→              key={p.id}
+  1012→              type="button"
+  1013→              onClick={() => onInspect(p.id)}
+  1014→              className={cn(
+  1015→                'w-full text-left rounded-lg border border-border bg-card/60 p-2.5 flex items-center gap-3 hover:bg-accent/50 transition-colors min-h-[44px]',
+  1016→                !p.connected && 'opacity-60',
+  1017→              )}
+  1018→              aria-label={`Inspect ${p.name}`}
+  1019→            >
+  1020→              <StatusDot connected={p.connected} />
+  1021→              <div className="flex-1 min-w-0">
+  1022→                <div className="flex items-center gap-1.5">
+  1023→                  <span className="font-medium truncate">{p.name}</span>
+  1024→                  {p.isHost && (
+  1025→                    <Badge
+  1026→                      variant="outline"
+  1027→                      className="text-[10px] py-0 px-1 border-gold/40 text-gold"
+  1028→                    >
+  1029→                      HOST
+  1030→                    </Badge>
+  1031→                  )}
+  1032→                  {p.isBot && (
+  1033→                    <Badge
+  1034→                      variant="outline"
+  1035→                      className="text-[10px] py-0 px-1 border-ocean/40 text-ocean bg-ocean/10 gap-0.5"
+  1036→                    >
+  1037→                      <BotIcon className="h-2.5 w-2.5" />
+  1038→                      BOT
+  1039→                    </Badge>
+  1040→                  )}
+  1041→                </div>
+  1042→                <div className="text-[10px] text-muted-foreground">
+  1043→                  Joined {formatDistanceToNow(new Date(p.joinedAt), { addSuffix: true })}
+  1044→                  {p.lastMove && p.lastMoveAt ? (
+  1045→                    <>
+  1046→                      {' '}· Last move <span className="font-mono">{p.lastMove}</span>{' '}
+  1047→                      ({formatDistanceToNow(new Date(p.lastMoveAt), { addSuffix: true })})
+  1048→                    </>
+  1049→                  ) : null}
+  1050→                </div>
+  1051→              </div>
+  1052→              <div className="text-right">
+  1053→                <div className="font-mono font-bold text-gold">
+  1054→                  {formatMoney(playerFinalScore(p))}
+  1055→                </div>
+  1056→                <div className="text-[10px] text-muted-foreground">
+  1057→                  {p.connected ? 'online' : 'offline'}
+  1058→                </div>
+  1059→              </div>
+  1060→              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+  1061→            </button>
+  1062→          ))}
+  1063→        </div>
+  1064→      )}
+  1065→    </Card>
+  1066→  );
+  1067→}
+  1068→
+  1069→// ============================================================================
+  1070→// Inspect Player dialog (with Board / Stats / Manage tabs)
+  1071→// ============================================================================
+  1072→
+  1073→function InspectPlayerDialog({
+  1074→  playerId,
+  1075→  onClose,
+  1076→}: {
+  1077→  playerId: string | null;
+  1078→  onClose: () => void;
+  1079→}) {
+  1080→  const hostState = useGameStore((s) => s.hostState)!;
+  1081→  const player = useMemo(
+  1082→    () => (playerId ? hostState.players.find((p) => p.id === playerId) ?? null : null),
+  1083→    [hostState.players, playerId],
+  1084→  );
+  1085→
+  1086→  const open = !!playerId && !!player;
+  1087→
+  1088→  return (
+  1089→    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+  1090→      <DialogContent
+  1091→        className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col gap-4"
+  1092→        aria-describedby="inspect-desc"
+  1093→      >
+  1094→        {player ? (
+  1095→          <InspectPlayerContent key={player.id} player={player} onClose={onClose} />
+  1096→        ) : null}
+  1097→      </DialogContent>
+  1098→    </Dialog>
+  1099→  );
+  1100→}
+  1101→
+  1102→function InspectPlayerContent({
+  1103→  player,
+  1104→  onClose,
+  1105→}: {
+  1106→  player: Player;
+  1107→  onClose: () => void;
+  1108→}) {
+  1109→  const hostState = useGameStore((s) => s.hostState)!;
+  1110→  const hostRevealSquare = useGameStore((s) => s.hostRevealSquare);
+  1111→  const hostForceAward = useGameStore((s) => s.hostForceAward);
+  1112→  const hostForceRemove = useGameStore((s) => s.hostForceRemove);
+  1113→  const hostEditTotal = useGameStore((s) => s.hostEditTotal);
+  1114→  const hostEditInventory = useGameStore((s) => s.hostEditInventory);
+  1115→  const hostKick = useGameStore((s) => s.hostKick);
+  1116→  const removeBot = useGameStore((s) => s.removeBot);
+  1117→  const pushToast = useGameStore((s) => s.pushToast);
+  1118→  const { play } = useSound();
+  1119→
+  1120→  const [awardAmount, setAwardAmount] = useState('100');
+  1121→  const [removeAmount, setRemoveAmount] = useState('100');
+  1122→  const [runningInput, setRunningInput] = useState(String(player.runningTotal));
+  1123→  const [bankedInput, setBankedInput] = useState(String(player.bankedTotal));
+  1124→  const [invSelect, setInvSelect] = useState<PowerType>('shield');
+  1125→
+  1126→  const final = playerFinalScore(player);
+  1127→  const revealedCount = player.board.filter((s) => s.revealed).length;
+  1128→  const history = useMemo(() => [...player.history].slice(-20).reverse(), [player.history]);
+  1129→
+  1130→  const handleSaveTotals = () => {
+  1131→    const r = parseInt(runningInput, 10);
+  1132→    const b = parseInt(bankedInput, 10);
+  1133→    if (Number.isNaN(r) || Number.isNaN(b)) {
+  1134→      pushToast({ title: 'Invalid totals', tone: 'bad' });
+  1135→      return;
+  1136→    }
+  1137→    play('click');
+  1138→    if (r !== player.runningTotal) hostEditTotal(player.id, 'running', r);
+  1139→    if (b !== player.bankedTotal) hostEditTotal(player.id, 'banked', b);
+  1140→    pushToast({ title: 'Totals saved', tone: 'good' });
+  1141→  };
+  1142→
+  1143→  const handleAward = () => {
+  1144→    const n = parseInt(awardAmount, 10);
+  1145→    if (Number.isNaN(n) || n <= 0) {
+  1146→      pushToast({ title: 'Invalid amount', tone: 'bad' });
+  1147→      return;
+  1148→    }
+  1149→    play('click');
+  1150→    hostForceAward(player.id, n);
+  1151→    pushToast({ title: `Awarded ${formatMoney(n)}`, description: player.name, tone: 'good' });
+  1152→  };
+  1153→
+  1154→  const handleRemove = () => {
+  1155→    const n = parseInt(removeAmount, 10);
+  1156→    if (Number.isNaN(n) || n <= 0) {
+  1157→      pushToast({ title: 'Invalid amount', tone: 'bad' });
+  1158→      return;
+  1159→    }
+  1160→    play('click');
+  1161→    hostForceRemove(player.id, n);
+  1162→    pushToast({ title: `Removed ${formatMoney(n)}`, description: player.name, tone: 'bad' });
+  1163→  };
+  1164→
+  1165→  const handleAddInventory = () => {
+  1166→    play('click');
+  1167→    hostEditInventory(player.id, 'add', invSelect);
+  1168→    pushToast({
+  1169→      title: `Added ${POWERS[invSelect].label}`,
+  1170→      description: player.name,
+  1171→      tone: 'good',
+  1172→    });
+  1173→  };
+  1174→
+  1175→  const handleRemoveInventory = () => {
+  1176→    play('click');
+  1177→    hostEditInventory(player.id, 'remove', invSelect);
+  1178→    pushToast({
+  1179→      title: `Removed ${POWERS[invSelect].label}`,
+  1180→      description: player.name,
+  1181→      tone: 'info',
+  1182→    });
+  1183→  };
+  1184→
+  1185→  const handleKick = () => {
+  1186→    play('click');
+  1187→    hostKick(player.id);
+  1188→    onClose();
+  1189→    pushToast({ title: `Kicked ${player.name}`, tone: 'bad' });
+  1190→  };
+  1191→
+  1192→  const handleRemoveBot = () => {
+  1193→    play('click');
+  1194→    removeBot(player.id);
+  1195→    onClose();
+  1196→    pushToast({ title: `Removed bot ${player.name}`, tone: 'bad' });
+  1197→  };
+  1198→
+  1199→  return (
+  1200→    <>
+  1201→      <DialogHeader>
+  1202→        <DialogTitle className="display-font text-2xl text-gold flex items-center gap-2">
+  1203→          <StatusDot connected={player.connected} />
+  1204→          {player.name}
+  1205→          {player.isHost && (
+  1206→            <Badge variant="outline" className="text-[10px] border-gold/40 text-gold">
+  1207→              HOST
+  1208→            </Badge>
+  1209→          )}
+  1210→          {player.isBot && (
+  1211→            <Badge variant="outline" className="text-[10px] border-ocean/40 text-ocean bg-ocean/10 gap-0.5">
+  1212→              <BotIcon className="h-2.5 w-2.5" />
+  1213→              BOT
+  1214→            </Badge>
+  1215→          )}
+  1216→        </DialogTitle>
+  1217→        <DialogDescription id="inspect-desc">
+  1218→          Inspect board, stats, and apply host overrides.
+  1219→        </DialogDescription>
+  1220→      </DialogHeader>
+  1221→
+  1222→      {/* Money summary */}
+  1223→      <div className="grid grid-cols-3 gap-2">
+  1224→        <MoneyPill value={player.runningTotal} label="Running" tone="ocean" variant="at-risk" />
+  1225→        <MoneyPill value={player.bankedTotal} label="Banked" tone="gold" variant="banked" />
+  1226→        <MoneyPill value={final} label="Final" tone="gold" />
+  1227→      </div>
+  1228→
+  1229→      <Tabs defaultValue="board" className="flex-1 overflow-hidden flex flex-col min-h-0">
+  1230→        <TabsList className="self-start">
+  1231→          <TabsTrigger value="board">Board</TabsTrigger>
+  1232→          <TabsTrigger value="stats">Stats</TabsTrigger>
+  1233→          <TabsTrigger value="manage">Manage</TabsTrigger>
+  1234→        </TabsList>
+  1235→
+  1236→        {/* Board tab */}
+  1237→        <TabsContent value="board" className="overflow-y-auto scroll-thin pr-1 mt-2">
+  1238→          <div className="text-xs text-muted-foreground mb-2">
+  1239→            Tap any square to toggle its reveal state on this player&apos;s board. Hidden squares are visible to you (host).
+  1240→            <span className="ml-1 font-mono text-gold">{revealedCount}/100 revealed.</span>
+  1241→          </div>
+  1242→          <GameBoard
+  1243→            board={player.board}
+  1244→            showAll
+  1245→            size="md"
+  1246→            highlightCoord={hostState.currentCoord}
+  1247→            onSquareClick={(coord) => { play('click'); hostRevealSquare(player.id, coord); }}
+  1248→          />
+  1249→
+  1250→          {/* Inventory */}
+  1251→          <div className="mt-4">
+  1252→            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+  1253→              Inventory ({player.inventory.length})
+  1254→            </div>
+  1255→            {player.inventory.length === 0 ? (
+  1256→              <div className="text-sm text-muted-foreground italic">No defensive items.</div>
+  1257→            ) : (
+  1258→              <div className="flex flex-wrap gap-1.5">
+  1259→                {player.inventory.map((it, i) => (
+  1260→                  <div
+  1261→                    key={`${it.type}-${i}`}
+  1262→                    className={cn(
+  1263→                      'rounded-md border px-2 py-1 flex items-center gap-1.5 text-xs',
+  1264→                      powerChipClass(it.type),
+  1265→                    )}
+  1266→                  >
+  1267→                    <PowerIcon power={it.type} className="h-3.5 w-3.5" />
+  1268→                    <span className={powerTextClass(it.type)}>{POWERS[it.type].label}</span>
+  1269→                  </div>
+  1270→                ))}
+  1271→              </div>
+  1272→            )}
+  1273→          </div>
+  1274→
+  1275→          {/* History */}
+  1276→          <div className="mt-4">
+  1277→            <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+  1278→              History (last 20)
+  1279→            </div>
+  1280→            {history.length === 0 ? (
+  1281→              <div className="text-sm text-muted-foreground italic">No history yet.</div>
+  1282→            ) : (
+  1283→              <div className="max-h-48 overflow-y-auto scroll-thin space-y-1 pr-1">
+  1284→                {history.map((h, i) => (
+  1285→                  <div
+  1286→                    key={`${i}-${h.at}`}
+  1287→                    className="text-xs flex items-center gap-2 border-b border-border/50 pb-1"
+  1288→                  >
+  1289→                    <span className="font-mono text-muted-foreground">{fmtTime(h.at)}</span>
+  1290→                    {h.coord && (
+  1291→                      <Badge variant="outline" className="font-mono text-[10px] py-0">
+  1292→                        {h.coord}
+  1293→                      </Badge>
+  1294→                    )}
+  1295→                    <span className="flex-1">{h.text}</span>
+  1296→                    {h.delta !== undefined && h.delta !== 0 && (
+  1297→                      <span
+  1298→                        className={cn(
+  1299→                          'font-mono font-bold',
+  1300→                          h.delta > 0 ? 'text-emerald-500' : 'text-destructive',
+  1301→                        )}
+  1302→                      >
+  1303→                        {h.delta > 0 ? '+' : ''}
+  1304→                        {formatMoney(h.delta)}
+  1305→                      </span>
+  1306→                    )}
+  1307→                  </div>
+  1308→                ))}
+  1309→              </div>
+  1310→            )}
+  1311→          </div>
+  1312→        </TabsContent>
+  1313→
+  1314→        {/* Stats tab */}
+  1315→        <TabsContent value="stats" className="overflow-y-auto scroll-thin pr-1 mt-2">
+  1316→          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+  1317→            {STAT_FIELDS.map(({ key, label, money }) => {
+  1318→              const val = player.stats[key];
+  1319→              return (
+  1320→                <div
+  1321→                  key={String(key)}
+  1322→                  className="rounded-lg border border-border bg-card/60 p-2.5"
+  1323→                >
+  1324→                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+  1325→                    {label}
+  1326→                  </div>
+  1327→                  <div className="font-mono font-bold text-sm mt-0.5">
+  1328→                    {money ? formatMoney(val) : val}
+  1329→                  </div>
+  1330→                </div>
+  1331→              );
+  1332→            })}
+  1333→          </div>
+  1334→        </TabsContent>
+  1335→
+  1336→        {/* Manage tab */}
+  1337→        <TabsContent value="manage" className="overflow-y-auto scroll-thin pr-1 mt-2 space-y-4">
+  1338→          {/* Force award / remove */}
+  1339→          <div className="space-y-2">
+  1340→            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+  1341→              Force Money
+  1342→            </div>
+  1343→            <div className="flex flex-wrap gap-2 items-end">
+  1344→              <div className="flex-1 min-w-[120px]">
+  1345→                <Label htmlFor="award-input" className="text-xs">Award $</Label>
+  1346→                <Input
+  1347→                  id="award-input"
+  1348→                  type="number"
+  1349→                  value={awardAmount}
+  1350→                  onChange={(e) => setAwardAmount(e.target.value)}
+  1351→                  className="font-mono"
+  1352→                  min={0}
+  1353→                />
+  1354→              </div>
+  1355→              <Button
+  1356→                size="sm"
+  1357→                onClick={handleAward}
+  1358→                className="bg-emerald-600 hover:bg-emerald-700 text-white min-h-[40px]"
+  1359→              >
+  1360→                <Plus className="h-4 w-4" /> Award
+  1361→              </Button>
+  1362→              <div className="flex-1 min-w-[120px]">
+  1363→                <Label htmlFor="remove-input" className="text-xs">Remove $</Label>
+  1364→                <Input
+  1365→                  id="remove-input"
+  1366→                  type="number"
+  1367→                  value={removeAmount}
+  1368→                  onChange={(e) => setRemoveAmount(e.target.value)}
+  1369→                  className="font-mono"
+  1370→                  min={0}
+  1371→                />
+  1372→              </div>
+  1373→              <Button
+  1374→                size="sm"
+  1375→                variant="destructive"
+  1376→                onClick={handleRemove}
+  1377→                className="min-h-[40px]"
+  1378→              >
+  1379→                <Minus className="h-4 w-4" /> Remove
+  1380→              </Button>
+  1381→            </div>
+  1382→          </div>
+  1383→
+  1384→          <Separator />
+  1385→
+  1386→          {/* Edit totals */}
+  1387→          <div className="space-y-2">
+  1388→            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+  1389→              Edit Totals
+  1390→            </div>
+  1391→            <div className="flex flex-wrap gap-2 items-end">
+  1392→              <div className="flex-1 min-w-[120px]">
+  1393→                <Label htmlFor="running-input" className="text-xs">Running $</Label>
+  1394→                <Input
+  1395→                  id="running-input"
+  1396→                  type="number"
+  1397→                  value={runningInput}
+  1398→                  onChange={(e) => setRunningInput(e.target.value)}
+  1399→                  className="font-mono"
+  1400→                />
+  1401→              </div>
+  1402→              <div className="flex-1 min-w-[120px]">
+  1403→                <Label htmlFor="banked-input" className="text-xs">Banked $</Label>
+  1404→                <Input
+  1405→                  id="banked-input"
+  1406→                  type="number"
+  1407→                  value={bankedInput}
+  1408→                  onChange={(e) => setBankedInput(e.target.value)}
+  1409→                  className="font-mono"
+  1410→                />
+  1411→              </div>
+  1412→              <Button size="sm" variant="outline" onClick={handleSaveTotals} className="min-h-[40px]">
+  1413→                <Save className="h-4 w-4" /> Save
+  1414→              </Button>
+  1415→            </div>
+  1416→            <div className="text-[10px] text-muted-foreground">
+  1417→              Current: {formatMoney(player.runningTotal)} running · {formatMoney(player.bankedTotal)} banked
+  1418→            </div>
+  1419→          </div>
+  1420→
+  1421→          <Separator />
+  1422→
+  1423→          {/* Edit inventory */}
+  1424→          <div className="space-y-2">
+  1425→            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+  1426→              Edit Inventory
+  1427→            </div>
+  1428→            <div className="flex flex-wrap gap-2 items-end">
+  1429→              <div className="flex-1 min-w-[180px]">
+  1430→                <Label htmlFor="inv-select" className="text-xs">Power</Label>
+  1431→                <Select value={invSelect} onValueChange={(v) => setInvSelect(v as PowerType)}>
+  1432→                  <SelectTrigger id="inv-select" className="w-full">
+  1433→                    <SelectValue />
+  1434→                  </SelectTrigger>
+  1435→                  <SelectContent>
+  1436→                    {Object.values(POWERS).map((meta) => (
+  1437→                      <SelectItem key={meta.type} value={meta.type}>
+  1438→                        <div className="flex items-center gap-2">
+  1439→                          <PowerIcon power={meta.type} className="h-3.5 w-3.5" />
+  1440→                          <span>{meta.label}</span>
+  1441→                        </div>
+  1442→                      </SelectItem>
+  1443→                    ))}
+  1444→                  </SelectContent>
+  1445→                </Select>
+  1446→              </div>
+  1447→              <Button size="sm" onClick={handleAddInventory} className="min-h-[40px]">
+  1448→                <Plus className="h-4 w-4" /> Add
+  1449→              </Button>
+  1450→              <Button
+  1451→                size="sm"
+  1452→                variant="outline"
+  1453→                onClick={handleRemoveInventory}
+  1454→                className="min-h-[40px]"
+  1455→              >
+  1456→                <Minus className="h-4 w-4" /> Remove
+  1457→              </Button>
+  1458→            </div>
+  1459→          </div>
+  1460→
+  1461→          <Separator />
+  1462→
+  1463→          {/* Danger zone */}
+  1464→          <div className="space-y-2">
+  1465→            <div className="text-xs uppercase tracking-wide text-destructive">
+  1466→              Danger Zone
+  1467→            </div>
+  1468→            {player.isBot ? (
+  1469→              <AlertDialog>
+  1470→                <AlertDialogTrigger asChild>
+  1471→                  <Button
+  1472→                    size="sm"
+  1473→                    variant="destructive"
+  1474→                    className="min-h-[40px]"
+  1475→                  >
+  1476→                    <Trash2 className="h-4 w-4" /> Remove Bot
+  1477→                  </Button>
+  1478→                </AlertDialogTrigger>
+  1479→                <AlertDialogContent>
+  1480→                  <AlertDialogHeader>
+  1481→                    <AlertDialogTitle>Remove {player.name}?</AlertDialogTitle>
+  1482→                    <AlertDialogDescription>
+  1483→                      This bot will be removed from the game immediately.
+  1484→                    </AlertDialogDescription>
+  1485→                  </AlertDialogHeader>
+  1486→                  <AlertDialogFooter>
+  1487→                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+  1488→                    <AlertDialogAction onClick={handleRemoveBot}>Remove Bot</AlertDialogAction>
+  1489→                  </AlertDialogFooter>
+  1490→                </AlertDialogContent>
+  1491→              </AlertDialog>
+  1492→            ) : (
+  1493→              <AlertDialog>
+  1494→                <AlertDialogTrigger asChild>
+  1495→                  <Button
+  1496→                    size="sm"
+  1497→                    variant="destructive"
+  1498→                    disabled={player.isHost}
+  1499→                    className="min-h-[40px]"
+  1500→                  >
+  1501→                    <Ban className="h-4 w-4" /> Kick Player
+  1502→                  </Button>
+  1503→                </AlertDialogTrigger>
+  1504→                <AlertDialogContent>
+  1505→                  <AlertDialogHeader>
+  1506→                    <AlertDialogTitle>Kick {player.name}?</AlertDialogTitle>
+  1507→                    <AlertDialogDescription>
+  1508→                      They will be removed from the game immediately. They can rejoin if the game is
+  1509→                      unlocked.
+  1510→                    </AlertDialogDescription>
+  1511→                  </AlertDialogHeader>
+  1512→                  <AlertDialogFooter>
+  1513→                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+  1514→                    <AlertDialogAction onClick={handleKick}>Kick</AlertDialogAction>
+  1515→                  </AlertDialogFooter>
+  1516→                </AlertDialogContent>
+  1517→              </AlertDialog>
+  1518→            )}
+  1519→            {player.isHost && (
+  1520→              <div className="text-[10px] text-muted-foreground italic">
+  1521→                You cannot kick the host.
+  1522→              </div>
+  1523→            )}
+  1524→          </div>
+  1525→        </TabsContent>
+  1526→      </Tabs>
+  1527→    </>
+  1528→  );
+  1529→}
+  1530→
+  1531→// ============================================================================
+  1532→// Undo panel (compact)
+  1533→// ============================================================================
+  1534→
+  1535→function UndoPanel() {
+  1536→  const hostState = useGameStore((s) => s.hostState)!;
+  1537→  const hostUndo = useGameStore((s) => s.hostUndo);
+  1538→  const { play } = useSound();
+  1539→  const undoStack = hostState.undoStack;
+  1540→  const recent = useMemo(() => [...undoStack].slice(-5).reverse(), [undoStack]);
+  1541→
+  1542→  return (
+  1543→    <Card className="pirate-card p-4 sm:p-6">
+  1544→      <div className="flex items-center gap-2 mb-3">
+  1545→        <History className="h-5 w-5 text-gold" />
+  1546→        <h2 className="display-font text-xl text-gold">Undo</h2>
+  1547→        <Badge variant="outline" className="ml-auto text-xs">
+  1548→          {undoStack.length} {undoStack.length === 1 ? 'entry' : 'entries'}
+  1549→        </Badge>
+  1550→      </div>
+  1551→
+  1552→      <Button
+  1553→        size="sm"
+  1554→        variant="outline"
+  1555→        onClick={() => { play('click'); hostUndo(); }}
+  1556→        disabled={undoStack.length === 0}
+  1557→        className="w-full mb-3 min-h-[44px]"
+  1558→      >
+  1559→        <Undo2 className="h-4 w-4" /> Undo Last Action
+  1560→      </Button>
+  1561→
+  1562→      {recent.length === 0 ? (
+  1563→        <div className="text-sm text-muted-foreground italic">No undo history.</div>
+  1564→      ) : (
+  1565→        <div className="space-y-1.5 max-h-48 overflow-y-auto scroll-thin pr-1">
+  1566→          {recent.map((u, i) => (
+  1567→            <div
+  1568→              key={u.id}
+  1569→              className={cn(
+  1570→                'text-xs rounded-md border border-border bg-card/60 p-2',
+  1571→                i === 0 && 'border-gold/40 bg-gold/5',
+  1572→              )}
+  1573→            >
+  1574→              <div className="flex items-center justify-between gap-2">
+  1575→                <span className="font-medium truncate">{u.description}</span>
+  1576→                {i === 0 && (
+  1577→                  <Badge
+  1578→                    variant="outline"
+  1579→                    className="text-[10px] py-0 px-1 border-gold/40 text-gold flex-shrink-0"
+  1580→                  >
+  1581→                    NEXT
+  1582→                  </Badge>
+  1583→                )}
+  1584→              </div>
+  1585→              <div className="text-[10px] text-muted-foreground mt-0.5">
+  1586→                {formatDistanceToNow(new Date(u.at), { addSuffix: true })}
+  1587→              </div>
+  1588→            </div>
+  1589→          ))}
+  1590→        </div>
+  1591→      )}
+  1592→    </Card>
+  1593→  );
+  1594→}
+  1595→
+  1596→// ============================================================================
+  1597→// Activity feed
+  1598→// ============================================================================
+  1599→
+  1600→function ActivityFeedPanel() {
+  1601→  const hostState = useGameStore((s) => s.hostState)!;
+  1602→  const [filter, setFilter] = useState<ActivityFilter>('all');
+  1603→
+  1604→  const events = useMemo(() => {
+  1605→    const sorted = [...hostState.activity].sort((a, b) => b.at - a.at);
+  1606→    if (filter === 'all') return sorted;
+  1607→    return sorted.filter((e) => {
+  1608→      const cat = ACTIVITY_FILTER_CAT[e.type];
+  1609→      if (filter === 'players') return cat === 'players';
+  1610→      if (filter === 'powers') return cat === 'powers';
+  1611→      if (filter === 'host') return cat === 'host' || cat === 'system';
+  1612→      return true;
+  1613→    });
+  1614→  }, [hostState.activity, filter]);
+  1615→
+  1616→  const filters: ActivityFilter[] = ['all', 'players', 'powers', 'host'];
+  1617→
+  1618→  return (
+  1619→    <Card className="pirate-card parchment-scroll p-4 sm:p-6">
+  1620→      <div className="flex items-center gap-2 mb-3">
+  1621→        <ActivityIcon className="h-5 w-5 text-ocean" />
+  1622→        <h2 className="display-font text-xl text-gold">Activity Feed</h2>
+  1623→        <span className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground">
+  1624→          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+  1625→          live
+  1626→        </span>
+  1627→      </div>
+  1628→
+  1629→      {/* Filter chips */}
+  1630→      <div className="flex flex-wrap gap-1.5 mb-3">
+  1631→        {filters.map((f) => (
+  1632→          <button
+  1633→            key={f}
+  1634→            type="button"
+  1635→            onClick={() => setFilter(f)}
+  1636→            className={cn(
+  1637→              'rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors min-h-[32px]',
+  1638→              filter === f
+  1639→                ? 'border-gold/60 bg-gold/15 text-gold'
+  1640→                : 'border-border text-muted-foreground hover:bg-accent/50',
+  1641→            )}
+  1642→            aria-pressed={filter === f}
+  1643→          >
+  1644→            {f}
+  1645→          </button>
+  1646→        ))}
+  1647→      </div>
+  1648→
+  1649→      <div className="max-h-[28rem] overflow-y-auto scroll-thin space-y-1.5 pr-1">
+  1650→        {events.length === 0 ? (
+  1651→          <div className="text-sm text-muted-foreground italic py-4">No activity yet.</div>
+  1652→        ) : (
+  1653→          <AnimatePresence initial={false}>
+  1654→            {events.map((ev) => {
+  1655→              const Icon = ACTIVITY_ICON[ev.type] ?? Info;
+  1656→              const tone: Tone = ev.tone ?? 'neutral';
+  1657→              return (
+  1658→                <motion.div
+  1659→                  key={ev.id}
+  1660→                  layout
+  1661→                  initial={{ opacity: 0, y: -8 }}
+  1662→                  animate={{ opacity: 1, y: 0 }}
+  1663→                  exit={{ opacity: 0 }}
+  1664→                  transition={{ duration: 0.18 }}
+  1665→                  className={cn(
+  1666→                    'flex items-start gap-2 rounded-md border p-2 text-xs',
+  1667→                    TONE_BG[tone],
+  1668→                  )}
+  1669→                >
+  1670→                  <Icon className={cn('h-3.5 w-3.5 mt-0.5 flex-shrink-0', TONE_TEXT[tone])} />
+  1671→                  <div className="flex-1 min-w-0">
+  1672→                    <div className="flex items-baseline gap-2 flex-wrap">
+  1673→                      <span className="font-mono text-[10px] text-muted-foreground">
+  1674→                        {fmtTime(ev.at)}
+  1675→                      </span>
+  1676→                      {ev.actor && <span className="font-semibold">{ev.actor}</span>}
+  1677→                    </div>
+  1678→                    <div className={cn('mt-0.5 break-words', TONE_TEXT[tone])}>
+  1679→                      {ev.message}
+  1680→                    </div>
+  1681→                  </div>
+  1682→                </motion.div>
+  1683→              );
+  1684→            })}
+  1685→          </AnimatePresence>
+  1686→        )}
+  1687→      </div>
+  1688→    </Card>
+  1689→  );
+  1690→}
+  1691→

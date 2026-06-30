@@ -1,0 +1,667 @@
+     1→'use client';
+     2→
+     3→import { useEffect, useMemo, useState } from 'react';
+     4→import { motion, AnimatePresence } from 'framer-motion';
+     5→import { formatDistanceToNow } from 'date-fns';
+     6→import {
+     7→  Anchor,
+     8→  Activity as ActivityIcon,
+     9→  Bot as BotIcon,
+    10→  Check,
+    11→  CheckCircle2,
+    12→  Clock,
+    13→  Copy,
+    14→  Cpu,
+    15→  Eye,
+    16→  Gem,
+    17→  Play,
+    18→  Radio,
+    19→  Ship,
+    20→  Skull,
+    21→  Timer,
+    22→  Trash2,
+    23→  Users,
+    24→  X,
+    25→} from 'lucide-react';
+    26→import { useGameStore } from '@/hooks/pirate/useGameStore';
+    27→import { useSound } from '@/components/pirate/SoundManager';
+    28→import { StatusDot } from '@/components/pirate/common';
+    29→import { Button } from '@/components/ui/button';
+    30→import { Badge } from '@/components/ui/badge';
+    31→import {
+    32→  Select,
+    33→  SelectContent,
+    34→  SelectItem,
+    35→  SelectTrigger,
+    36→  SelectValue,
+    37→} from '@/components/ui/select';
+    38→import { cn } from '@/lib/utils';
+    39→import type { ActivityEvent } from '@/lib/pirate/types';
+    40→
+    41→// ---------------------------------------------------------------------------
+    42→// Tone → tailwind classes for activity feed rows
+    43→// ---------------------------------------------------------------------------
+    44→
+    45→type ActivityTone = NonNullable<ActivityEvent['tone']>;
+    46→
+    47→const TONE_DOT_CLASS: Record<ActivityTone, string> = {
+    48→  good: 'bg-emerald-500',
+    49→  bad: 'bg-destructive',
+    50→  epic: 'bg-gold',
+    51→  info: 'bg-ocean',
+    52→  neutral: 'bg-muted-foreground/50',
+    53→};
+    54→
+    55→const TONE_ROW_CLASS: Record<ActivityTone, string> = {
+    56→  good: 'border-emerald-500/30 bg-emerald-500/10',
+    57→  bad: 'border-destructive/30 bg-destructive/10',
+    58→  epic: 'border-gold/40 bg-gold/10',
+    59→  info: 'border-ocean/30 bg-ocean/10',
+    60→  neutral: 'border-border bg-muted/30',
+    61→};
+    62→
+    63→// ---------------------------------------------------------------------------
+    64→// Hooks
+    65→// ---------------------------------------------------------------------------
+    66→
+    67→/** Triggers a re-render every `intervalMs` so relative timestamps stay fresh. */
+    68→function useNow(intervalMs = 30_000): number {
+    69→  const [now, setNow] = useState<number>(() => Date.now());
+    70→  useEffect(() => {
+    71→    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    72→    return () => clearInterval(id);
+    73→  }, [intervalMs]);
+    74→  return now;
+    75→}
+    76→
+    77→// ---------------------------------------------------------------------------
+    78→// Small UI atoms
+    79→// ---------------------------------------------------------------------------
+    80→
+    81→function AnimatedDots({ className }: { className?: string }) {
+    82→  return (
+    83→    <span className={cn('inline-flex gap-0.5 ml-1 align-middle', className)} aria-hidden>
+    84→      {[0, 1, 2].map((i) => (
+    85→        <motion.span
+    86→          key={i}
+    87→          className="inline-block h-1 w-1 rounded-full bg-current"
+    88→          animate={{ opacity: [0.2, 1, 0.2] }}
+    89→          transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2, ease: 'easeInOut' }}
+    90→        />
+    91→      ))}
+    92→    </span>
+    93→  );
+    94→}
+    95→
+    96→function PlayerAvatar({ name, isHost, isBot }: { name: string; isHost?: boolean; isBot?: boolean }) {
+    97→  return (
+    98→    <span
+    99→      className={cn(
+   100→        'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold',
+   101→        isBot
+   102→          ? 'bg-ocean/15 border-ocean/30 text-ocean'
+   103→          : 'bg-ocean/15 border-ocean/30 text-ocean',
+   104→      )}
+   105→    >
+   106→      {isBot ? (
+   107→        <BotIcon className="h-4 w-4" />
+   108→      ) : (
+   109→        name.slice(0, 2).toUpperCase()
+   110→      )}
+   111→      {isHost && (
+   112→        <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-gold/20 border border-gold/50 text-gold">
+   113→          <Skull className="h-2.5 w-2.5" />
+   114→        </span>
+   115→      )}
+   116→    </span>
+   117→  );
+   118→}
+   119→
+   120→// ---------------------------------------------------------------------------
+   121→// Main component
+   122→// ---------------------------------------------------------------------------
+   123→
+   124→export default function HostLobby() {
+   125→  const hostState = useGameStore((s) => s.hostState);
+   126→  const startGame = useGameStore((s) => s.startGame);
+   127→  const addBot = useGameStore((s) => s.addBot);
+   128→  const removeBot = useGameStore((s) => s.removeBot);
+   129→  const setTimerDuration = useGameStore((s) => s.setTimerDuration);
+   130→  const reset = useGameStore((s) => s.reset);
+   131→  const { play } = useSound();
+   132→  const [copied, setCopied] = useState(false);
+   133→  const now = useNow(30_000);
+   134→
+   135→  const code = hostState?.code ?? '';
+   136→  const players = hostState?.players ?? [];
+   137→  const activity = hostState?.activity ?? [];
+   138→  const canStart = players.length >= 1;
+   139→  const botCount = players.filter((p) => p.isBot).length;
+   140→  const botsDisabled = botCount >= 8;
+   141→  const humanCount = players.length - botCount;
+   142→  const readyCount = players.filter((p) => !p.isBot && p.ready).length;
+   143→  const allHumansReady = humanCount > 0 && readyCount === humanCount;
+   144→  const timerDuration = hostState?.roundTimer?.duration ?? 0;
+   145→
+   146→  // Pre-compute relative time strings so they refresh whenever `now` ticks.
+   147→  const playerRows = useMemo(
+   148→    () =>
+   149→      players.map((p) => ({
+   150→        ...p,
+   151→        joinedAgo: formatDistanceToNow(new Date(p.joinedAt), { addSuffix: true }),
+   152→      })),
+   153→    [players, now],
+   154→  );
+   155→
+   156→  const activityRows = useMemo(
+   157→    () =>
+   158→      activity.slice(0, 8).map((ev) => ({
+   159→        ev,
+   160→        ago: formatDistanceToNow(new Date(ev.at), { addSuffix: true }),
+   161→      })),
+   162→    [activity, now],
+   163→  );
+   164→
+   165→  const handleCopy = async () => {
+   166→    if (!code) return;
+   167→    play('click');
+   168→    try {
+   169→      await navigator.clipboard.writeText(code);
+   170→      setCopied(true);
+   171→      window.setTimeout(() => setCopied(false), 1800);
+   172→    } catch {
+   173→      // Clipboard may be blocked — silent fail, the click sound still plays.
+   174→    }
+   175→  };
+   176→
+   177→  const handleStart = () => {
+   178→    if (!canStart) return;
+   179→    play('click');
+   180→    startGame();
+   181→  };
+   182→
+   183→  const handleCancel = () => {
+   184→    play('click');
+   185→    reset();
+   186→  };
+   187→
+   188→  const handleAddBot = () => {
+   189→    play('click');
+   190→    addBot();
+   191→  };
+   192→
+   193→  const handleRemoveBot = (id: string) => {
+   194→    play('click');
+   195→    removeBot(id);
+   196→  };
+   197→
+   198→  const handleSetTimer = (value: string) => {
+   199→    play('click');
+   200→    setTimerDuration(parseInt(value, 10));
+   201→  };
+   202→
+   203→  return (
+   204→    <section
+   205→      className="min-h-[calc(100vh-3rem)] w-full px-4 py-6 sm:px-6 sm:py-8"
+   206→      aria-label="Host waiting room"
+   207→    >
+   208→      <div className="mx-auto max-w-5xl space-y-5 sm:space-y-6">
+   209→        {/* Header */}
+   210→        <motion.header
+   211→          initial={{ opacity: 0, y: -10 }}
+   212→          animate={{ opacity: 1, y: 0 }}
+   213→          transition={{ duration: 0.4 }}
+   214→          className="flex flex-col items-center text-center gap-2"
+   215→        >
+   216→          <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+   217→            <Skull className="h-3.5 w-3.5 text-gold" />
+   218→            Host · Waiting Room
+   219→          </div>
+   220→          <h1 className="font-display text-4xl sm:text-5xl gold-text leading-none">
+   221→            Captain&apos;s Quarters
+   222→          </h1>
+   223→          <p className="text-sm text-muted-foreground max-w-md">
+   224→            Share the code below with yer crew. The voyage begins when ye press start.
+   225→          </p>
+   226→        </motion.header>
+   227→
+   228→        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-6">
+   229→          {/* Left column: code + players */}
+   230→          <div className="space-y-4 sm:space-y-6">
+   231→            {/* Game code card */}
+   232→            <motion.article
+   233→              initial={{ opacity: 0, scale: 0.96 }}
+   234→              animate={{ opacity: 1, scale: 1 }}
+   235→              transition={{ duration: 0.4, delay: 0.05 }}
+   236→              className="pirate-card p-4 sm:p-6"
+   237→            >
+   238→              <header className="flex items-center justify-between mb-3">
+   239→                <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-muted-foreground">
+   240→                  <Radio className="h-3.5 w-3.5 text-gold" />
+   241→                  Share this code
+   242→                </div>
+   243→                <Badge variant="outline" className="border-gold/40 text-gold bg-gold/10">
+   244→                  {players.length} {players.length === 1 ? 'pirate' : 'pirates'}
+   245→                </Badge>
+   246→              </header>
+   247→
+   248→              {botCount > 0 && (
+   249→                <div className="mb-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+   250→                  <Cpu className="h-3 w-3 text-ocean" />
+   251→                  {botCount} {botCount === 1 ? 'bot' : 'bots'} aboard · max 8
+   252→                </div>
+   253→              )}
+   254→
+   255→              {(hostState?.spectatorCount ?? 0) > 0 && (
+   256→                <div className="mb-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+   257→                  <Eye className="h-3 w-3 text-ocean" />
+   258→                  {hostState!.spectatorCount} {hostState!.spectatorCount === 1 ? 'spectator' : 'spectators'} watching
+   259→                </div>
+   260→              )}
+   261→
+   262→              <motion.div
+   263→                className="animate-float-slow"
+   264→                animate={{
+   265→                  boxShadow: [
+   266→                    '0 0 0 0 color-mix(in oklch, var(--gold) 0%, transparent)',
+   267→                    '0 0 0 10px color-mix(in oklch, var(--gold) 16%, transparent)',
+   268→                    '0 0 0 0 color-mix(in oklch, var(--gold) 0%, transparent)',
+   269→                  ],
+   270→                }}
+   271→                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
+   272→              >
+   273→                <div className="flex items-stretch gap-2">
+   274→                  <div className="flex-1 rounded-lg border-2 border-gold/50 bg-gold/10 px-4 py-5 flex items-center justify-center min-h-[72px]">
+   275→                    <span className="font-mono text-4xl sm:text-5xl font-bold tracking-[0.3em] gold-text">
+   276→                      {code || '------'}
+   277→                    </span>
+   278→                  </div>
+   279→                  <Button
+   280→                    onClick={handleCopy}
+   281→                    variant="outline"
+   282→                    aria-label="Copy game code to clipboard"
+   283→                    className={cn(
+   284→                      'btn-pirate btn-copy-ripple h-auto min-h-[72px] px-3 sm:px-4 border-gold/40 hover:bg-gold/10 hover:text-gold',
+   285→                      copied && 'btn-copy-rippling',
+   286→                    )}
+   287→                  >
+   288→                    <AnimatePresence mode="wait" initial={false}>
+   289→                      {copied ? (
+   290→                        <motion.span
+   291→                          key="check"
+   292→                          initial={{ scale: 0.5, opacity: 0 }}
+   293→                          animate={{ scale: 1, opacity: 1 }}
+   294→                          exit={{ scale: 0.5, opacity: 0 }}
+   295→                          className="flex items-center gap-1.5 text-emerald-500"
+   296→                        >
+   297→                          <Check className="h-4 w-4" />
+   298→                          <span className="text-xs hidden sm:inline">Copied</span>
+   299→                        </motion.span>
+   300→                      ) : (
+   301→                        <motion.span
+   302→                          key="copy"
+   303→                          initial={{ scale: 0.5, opacity: 0 }}
+   304→                          animate={{ scale: 1, opacity: 1 }}
+   305→                          exit={{ scale: 0.5, opacity: 0 }}
+   306→                          className="flex items-center gap-1.5"
+   307→                        >
+   308→                          <Copy className="h-4 w-4" />
+   309→                          <span className="text-xs hidden sm:inline">Copy</span>
+   310→                        </motion.span>
+   311→                      )}
+   312→                    </AnimatePresence>
+   313→                  </Button>
+   314→                </div>
+   315→              </motion.div>
+   316→
+   317→              <p className="mt-3 text-[11px] text-muted-foreground flex items-center gap-1.5">
+   318→                <Anchor className="h-3 w-3 text-ocean" />
+   319→                Players join from the main screen using this 6-character code.
+   320→              </p>
+   321→            </motion.article>
+   322→
+   323→            {/* Players card */}
+   324→            <motion.article
+   325→              initial={{ opacity: 0, y: 12 }}
+   326→              animate={{ opacity: 1, y: 0 }}
+   327→              transition={{ duration: 0.4, delay: 0.15 }}
+   328→              className="pirate-card p-4 sm:p-6"
+   329→            >
+   330→              <header className="flex items-center justify-between mb-3">
+   331→                <h2 className="flex items-center gap-2 text-sm font-semibold">
+   332→                  <Users className="h-4 w-4 text-ocean" />
+   333→                  Crew Aboard
+   334→                </h2>
+   335→                <span className="text-xs text-muted-foreground">
+   336→                  {players.length} {players.length === 1 ? 'player' : 'players'} joined
+   337→                </span>
+   338→              </header>
+   339→
+   340→              {playerRows.length === 0 ? (
+   341→                <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-10 text-center parchment-scroll">
+   342→                  <motion.div
+   343→                    initial={{ opacity: 0.6, y: 0 }}
+   344→                    animate={{ opacity: [0.6, 1, 0.6], y: [0, -6, 0], rotate: [-2, 2, -2] }}
+   345→                    transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+   346→                    className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gold/15 border border-gold/40 mb-3 chest-bob"
+   347→                  >
+   348→                    <Gem className="h-7 w-7 text-gold" />
+   349→                  </motion.div>
+   350→                  <p className="text-sm font-medium">No pirates aboard yet</p>
+   351→                  <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+   352→                    Share the code above to summon yer crew
+   353→                    <AnimatedDots />
+   354→                  </p>
+   355→                </div>
+   356→              ) : (
+   357→                <ul
+   358→                  className="max-h-96 overflow-y-auto scroll-thin pr-1 space-y-2"
+   359→                  aria-label="Joined players"
+   360→                >
+   361→                  <AnimatePresence initial={false}>
+   362→                    {playerRows.map((p, i) => (
+   363→                      <motion.li
+   364→                        key={p.id}
+   365→                        layout
+   366→                        initial={{ opacity: 0, x: -20 }}
+   367→                        animate={{ opacity: 1, x: 0 }}
+   368→                        exit={{ opacity: 0, x: 20 }}
+   369→                        transition={{ type: 'spring', stiffness: 320, damping: 28, delay: i * 0.02 }}
+   370→                        className="flex items-center gap-3 rounded-lg border border-border bg-card/60 px-3 py-2.5 hover:border-gold/40 transition-colors min-h-[52px]"
+   371→                      >
+   372→                        <PlayerAvatar name={p.name} isHost={p.isHost} isBot={p.isBot} />
+   373→                        <div className="min-w-0 flex-1">
+   374→                          <div className="flex items-center gap-1.5 flex-wrap">
+   375→                            <span className="truncate font-medium text-sm">{p.name}</span>
+   376→                            {p.isHost && (
+   377→                              <Badge
+   378→                                variant="outline"
+   379→                                className="border-gold/40 text-gold bg-gold/10 text-[10px] px-1.5 py-0"
+   380→                              >
+   381→                                Host
+   382→                              </Badge>
+   383→                            )}
+   384→                            {p.isBot && (
+   385→                              <Badge
+   386→                                variant="outline"
+   387→                                className="border-ocean/40 text-ocean bg-ocean/10 text-[10px] px-1.5 py-0 gap-0.5"
+   388→                              >
+   389→                                <BotIcon className="h-2.5 w-2.5" />
+   390→                                BOT
+   391→                              </Badge>
+   392→                            )}
+   393→                            {!p.isBot && p.ready && (
+   394→                              <Badge
+   395→                                variant="outline"
+   396→                                className="border-emerald-500/50 text-emerald-500 bg-emerald-500/10 text-[10px] px-1.5 py-0 gap-0.5"
+   397→                              >
+   398→                                <CheckCircle2 className="h-2.5 w-2.5" />
+   399→                                READY
+   400→                              </Badge>
+   401→                            )}
+   402→                          </div>
+   403→                          <div className="text-[10px] text-muted-foreground">
+   404→                            Joined {p.joinedAgo}
+   405→                          </div>
+   406→                        </div>
+   407→                        <div className="flex items-center gap-1.5">
+   408→                          {p.isBot ? (
+   409→                            <Button
+   410→                              size="sm"
+   411→                              variant="ghost"
+   412→                              onClick={() => handleRemoveBot(p.id)}
+   413→                              aria-label={`Remove bot ${p.name}`}
+   414→                              className="h-7 px-2 text-[10px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+   415→                            >
+   416→                              <Trash2 className="h-3 w-3" />
+   417→                              <span className="hidden sm:inline">Remove</span>
+   418→                            </Button>
+   419→                          ) : (
+   420→                            <>
+   421→                              <StatusDot connected={p.connected} />
+   422→                              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+   423→                                {p.connected ? 'Online' : 'Away'}
+   424→                              </span>
+   425→                            </>
+   426→                          )}
+   427→                        </div>
+   428→                      </motion.li>
+   429→                    ))}
+   430→                  </AnimatePresence>
+   431→                </ul>
+   432→              )}
+   433→            </motion.article>
+   434→          </div>
+   435→
+   436→          {/* Right column: activity + settings + actions */}
+   437→          <div className="space-y-4 sm:space-y-6">
+   438→            {/* Activity feed */}
+   439→            <motion.article
+   440→              initial={{ opacity: 0, y: 12 }}
+   441→              animate={{ opacity: 1, y: 0 }}
+   442→              transition={{ duration: 0.4, delay: 0.2 }}
+   443→              className="pirate-card p-4 sm:p-6"
+   444→            >
+   445→              <header className="flex items-center justify-between mb-3">
+   446→                <h2 className="flex items-center gap-2 text-sm font-semibold">
+   447→                  <ActivityIcon className="h-4 w-4 text-gold" />
+   448→                  Ship&apos;s Log
+   449→                </h2>
+   450→                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+   451→                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+   452→                  live
+   453→                </span>
+   454→              </header>
+   455→
+   456→              {activityRows.length === 0 ? (
+   457→                <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-8 text-center">
+   458→                  <p className="text-xs text-muted-foreground">
+   459→                    Quiet seas… waiting for the first sailor to come aboard.
+   460→                  </p>
+   461→                </div>
+   462→              ) : (
+   463→                <ul
+   464→                  className="max-h-72 overflow-y-auto scroll-thin pr-1 space-y-1.5"
+   465→                  aria-label="Recent activity"
+   466→                >
+   467→                  <AnimatePresence initial={false}>
+   468→                    {activityRows.map(({ ev, ago }) => (
+   469→                      <ActivityRow key={ev.id} ev={ev} ago={ago} />
+   470→                    ))}
+   471→                  </AnimatePresence>
+   472→                </ul>
+   473→              )}
+   474→            </motion.article>
+   475→
+   476→            {/* Game Settings — Round Timer */}
+   477→            <motion.article
+   478→              initial={{ opacity: 0, y: 12 }}
+   479→              animate={{ opacity: 1, y: 0 }}
+   480→              transition={{ duration: 0.4, delay: 0.22 }}
+   481→              className="pirate-card p-4 sm:p-6"
+   482→            >
+   483→              <header className="flex items-center justify-between mb-3">
+   484→                <h2 className="flex items-center gap-2 text-sm font-semibold">
+   485→                  <Timer className="h-4 w-4 text-ocean" />
+   486→                  Game Settings
+   487→                </h2>
+   488→                {timerDuration > 0 && (
+   489→                  <Badge
+   490→                    variant="outline"
+   491→                    className="border-ocean/40 text-ocean bg-ocean/10 text-[10px] gap-0.5"
+   492→                  >
+   493→                    <Timer className="h-2.5 w-2.5" />
+   494→                    Auto · {timerDuration}s
+   495→                  </Badge>
+   496→                )}
+   497→              </header>
+   498→
+   499→              <div className="space-y-2">
+   500→                <label
+   501→                  htmlFor="round-timer-select"
+   502→                  className="text-xs font-medium text-foreground"
+   503→                >
+   504→                  Auto-advance timer
+   505→                </label>
+   506→                <p className="text-[11px] text-muted-foreground leading-snug">
+   507→                  When enabled, coordinates are called automatically every N
+   508→                  seconds. Keeps the game moving like a Kahoot round timer.
+   509→                </p>
+   510→                <Select
+   511→                  value={String(timerDuration)}
+   512→                  onValueChange={handleSetTimer}
+   513→                >
+   514→                  <SelectTrigger
+   515→                    id="round-timer-select"
+   516→                    className="w-full h-10 font-medium"
+   517→                    aria-label="Round timer duration"
+   518→                  >
+   519→                    <SelectValue placeholder="Off" />
+   520→                  </SelectTrigger>
+   521→                  <SelectContent>
+   522→                    <SelectItem value="0">Off — manual calls only</SelectItem>
+   523→                    <SelectItem value="10">10 seconds (fast)</SelectItem>
+   524→                    <SelectItem value="15">15 seconds (brisk)</SelectItem>
+   525→                    <SelectItem value="20">20 seconds (standard)</SelectItem>
+   526→                    <SelectItem value="30">30 seconds (relaxed)</SelectItem>
+   527→                    <SelectItem value="45">45 seconds (leisurely)</SelectItem>
+   528→                    <SelectItem value="60">60 seconds (slow)</SelectItem>
+   529→                  </SelectContent>
+   530→                </Select>
+   531→                <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 pt-1">
+   532→                  <Clock className="h-3 w-3 text-gold/70" />
+   533→                  {timerDuration > 0
+   534→                    ? `Timer starts when the game begins. You can pause/resume it from the dashboard.`
+   535→                    : `Timer starts when the game begins. Pick a duration to enable.`}
+   536→                </p>
+   537→              </div>
+   538→            </motion.article>
+   539→
+   540→            {/* Actions */}
+   541→            <motion.article
+   542→              initial={{ opacity: 0, y: 12 }}
+   543→              animate={{ opacity: 1, y: 0 }}
+   544→              transition={{ duration: 0.4, delay: 0.25 }}
+   545→              className="pirate-card p-4 sm:p-6 space-y-3"
+   546→            >
+   547→              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+   548→                <motion.span
+   549→                  animate={{ rotate: [-3, 3, -3] }}
+   550→                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+   551→                  className="inline-flex"
+   552→                >
+   553→                  <Ship className="h-3.5 w-3.5 text-ocean" />
+   554→                </motion.span>
+   555→                <span className="flex items-center">
+   556→                  Waiting for players to join<AnimatedDots />
+   557→                </span>
+   558→              </div>
+   559→
+   560→              <Button
+   561→                onClick={handleStart}
+   562→                disabled={!canStart}
+   563→                size="lg"
+   564→                className="w-full h-12 text-base gap-2 bg-gold text-gold-foreground hover:bg-gold/90 disabled:opacity-60 btn-pirate"
+   565→              >
+   566→                <Play className="h-5 w-5" />
+   567→                Set Sail · Start Game
+   568→              </Button>
+   569→
+   570→              {/* Ready status */}
+   571→              {humanCount > 0 && (
+   572→                <div
+   573→                  className={cn(
+   574→                    'flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs',
+   575→                    allHumansReady
+   576→                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500'
+   577→                      : 'border-gold/30 bg-gold/5 text-muted-foreground',
+   578→                  )}
+   579→                >
+   580→                  <CheckCircle2 className={cn('h-3.5 w-3.5', allHumansReady && 'animate-pulse')} />
+   581→                  <span className="tabular-nums">
+   582→                    {readyCount}/{humanCount} players ready
+   583→                  </span>
+   584→                  {allHumansReady && <span>· all set!</span>}
+   585→                </div>
+   586→              )}
+   587→
+   588→              <div className="flex gap-2">
+   589→                <Button
+   590→                  onClick={handleAddBot}
+   591→                  disabled={botsDisabled}
+   592→                  variant="outline"
+   593→                  size="lg"
+   594→                  className="flex-1 h-11 gap-2 border-ocean/40 text-ocean hover:bg-ocean/10 hover:text-ocean disabled:opacity-50 btn-pirate"
+   595→                  aria-label="Add a bot player to the lobby"
+   596→                >
+   597→                  <Cpu className="h-4 w-4" />
+   598→                  Add Bot
+   599→                  <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1.5 border-ocean/40 text-ocean">
+   600→                    {botCount}/8
+   601→                  </Badge>
+   602→                </Button>
+   603→              </div>
+   604→
+   605→              {!canStart && (
+   606→                <p className="text-center text-xs text-muted-foreground">
+   607→                  Need at least 1 player to set sail · add a bot to play solo
+   608→                </p>
+   609→              )}
+   610→
+   611→              {botsDisabled && (
+   612→                <p className="text-center text-xs text-muted-foreground">
+   613→                  Bot limit reached (8). Remove a bot to add another.
+   614→                </p>
+   615→              )}
+   616→
+   617→              <Button
+   618→                onClick={handleCancel}
+   619→                variant="ghost"
+   620→                className="w-full h-11 text-destructive hover:bg-destructive/10 hover:text-destructive btn-pirate"
+   621→              >
+   622→                <X className="h-4 w-4" />
+   623→                Cancel &amp; disband game
+   624→              </Button>
+   625→            </motion.article>
+   626→          </div>
+   627→        </div>
+   628→      </div>
+   629→    </section>
+   630→  );
+   631→}
+   632→
+   633→// ---------------------------------------------------------------------------
+   634→// Activity feed row
+   635→// ---------------------------------------------------------------------------
+   636→
+   637→function ActivityRow({ ev, ago }: { ev: ActivityEvent; ago: string }) {
+   638→  const tone: ActivityTone = ev.tone ?? 'neutral';
+   639→  return (
+   640→    <motion.li
+   641→      layout
+   642→      initial={{ opacity: 0, x: 10 }}
+   643→      animate={{ opacity: 1, x: 0 }}
+   644→      exit={{ opacity: 0, x: -10 }}
+   645→      transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+   646→      className={cn(
+   647→        'rounded-md border px-2.5 py-1.5 flex items-start gap-2 text-xs',
+   648→        TONE_ROW_CLASS[tone],
+   649→      )}
+   650→    >
+   651→      <span
+   652→        className={cn(
+   653→          'mt-1 h-1.5 w-1.5 shrink-0 rounded-full',
+   654→          TONE_DOT_CLASS[tone],
+   655→        )}
+   656→      />
+   657→      <div className="min-w-0 flex-1">
+   658→        <div className="break-words leading-snug">{ev.message}</div>
+   659→        <div className="text-[10px] opacity-70 flex items-center gap-1 mt-0.5">
+   660→          <Clock className="h-2.5 w-2.5" />
+   661→          {ago}
+   662→        </div>
+   663→      </div>
+   664→    </motion.li>
+   665→  );
+   666→}
+   667→
