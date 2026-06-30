@@ -61,7 +61,7 @@ import {
   StatusDot,
 } from '@/components/pirate/common';
 import { EmoteBar } from '@/components/pirate/EmoteBar';
-import { ChatPanel } from '@/components/pirate/ChatPanel';
+
 import {
   COLUMNS,
   BOARD_SIZE,
@@ -295,8 +295,7 @@ function DashboardInner() {
 
       {/* Quick reactions — the host can cheer along with the players. */}
       <EmoteBar />
-      <ChatPanel />
-    </div>
+      </div>
   );
 }
 

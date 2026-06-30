@@ -517,42 +517,6 @@ io.on('connection', (socket) => {
     io.to(s.code).emit(SERVER_EVENTS.reaction, reaction);
   });
 
-  // --- CHAT -----------------------------------------------------------------
-  const lastChat = new Map<string, number>();
-  socket.on(CLIENT_EVENTS.playerChat, (p: { code?: string; text?: string }, ack?: (r: any) => void) => {
-    const now = Date.now();
-    const last = lastChat.get(socket.id) ?? 0;
-    if (now - last < 500) return ack?.({ error: 'Too fast' });
-    lastChat.set(socket.id, now);
-
-    const code = (p?.code ?? '').trim().toUpperCase();
-    const text = (p?.text ?? '').trim();
-    const s = store.getGame(code);
-    if (!s) return ack?.({ error: 'Game not found' });
-    if (!text) return ack?.({ error: 'Empty message' });
-
-    // Resolve sender name + role.
-    let senderName = '';
-    let role: 'host' | 'player' | 'spectator' = 'player';
-    if (s.hostSocketId === socket.id) {
-      senderName = s.hostName;
-      role = 'host';
-    } else if (s.players.has(socket.id)) {
-      senderName = s.players.get(socket.id)!.name;
-      role = 'player';
-    } else if (s.spectators.has(socket.id)) {
-      senderName = s.spectators.get(socket.id)!.name;
-      role = 'spectator';
-    } else {
-      return ack?.({ error: 'Not in this game' });
-    }
-
-    const msg = store.addChatMessage(s, senderName, role, text);
-    if (!msg) return ack?.({ error: 'Invalid message' });
-    ack?.({ ok: true });
-    io.to(s.code).emit(SERVER_EVENTS.chat, msg);
-  });
-
   // --- disconnect ----------------------------------------------------------
   socket.on('disconnect', () => {
     console.log(`[pirate] disconnected ${socket.id}`);

@@ -25,7 +25,6 @@ import type {
   EmptyContent,
   PaletteEntry,
   Reaction,
-  ChatMessage,
   SpectatorGameState,
   Square,
   SquareContent,
@@ -160,7 +159,6 @@ export interface GameSession {
    * spec clients only animate reactions that arrive after they connect.
    */
   reactions: Reaction[];
-  chatMessages: ChatMessage[];
   roundTimer?: {
     duration: number; // seconds (0 = off, otherwise 5–60)
     remaining: number; // seconds left in current cycle
@@ -308,7 +306,6 @@ export class GameStore {
       createdAt: Date.now(),
       pendingDefenses: new Map(),
       reactions: [],
-      chatMessages: [],
     };
     let dbGameId: string | undefined;
     try {
@@ -719,29 +716,6 @@ export class GameStore {
       session.reactions.splice(0, session.reactions.length - 20);
     }
     return reaction;
-  }
-
-  addChatMessage(
-    session: GameSession,
-    playerName: string,
-    role: 'host' | 'player' | 'spectator',
-    text: string,
-  ): ChatMessage | null {
-    const clean = text.trim().slice(0, 200);
-    if (!clean) return null;
-    const msg: ChatMessage = {
-      id: uid('chat'),
-      playerName: (playerName || 'Pirate').slice(0, 24),
-      role,
-      text: clean,
-      at: Date.now(),
-    };
-    session.chatMessages.push(msg);
-    // Keep the last 50 messages.
-    if (session.chatMessages.length > 50) {
-      session.chatMessages.splice(0, session.chatMessages.length - 50);
-    }
-    return msg;
   }
 
   /**

@@ -24,7 +24,7 @@ const pirata = Pirata_One({
 export const metadata: Metadata = {
   title: "Pirate Game — Multiplayer Treasure Hunt",
   description:
-    "A real-time multiplayer pirate treasure game by Mr Stephen Corcoran (ΣlCorlán). Host calls coordinates, players reveal hidden squares, power cards activate.",
+    "A real-time multiplayer pirate treasure game by Mr Stephen Corcoran — Σ(Cor)²an. Host calls coordinates, players reveal hidden squares, power cards activate.",
   keywords: ["pirate game", "multiplayer", "treasure", "kahoot", "real-time", "socket.io"],
   authors: [{ name: "Mr Stephen Corcoran" }],
   icons: {

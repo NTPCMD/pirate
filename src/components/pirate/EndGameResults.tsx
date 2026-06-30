@@ -657,6 +657,14 @@ export default function EndGameResults({ role }: { role: 'host' | 'player' | 'sp
             </div>
           )}
         </section>
+
+        {/* Σ(Cor)²an — creator logo */}
+        <div className="text-center mt-8 mb-2 flex flex-col items-center gap-1">
+          <span className="text-xs text-muted-foreground/70">Created by Mr Stephen Corcoran</span>
+          <span className="font-mono font-extrabold text-base gold-text select-none tracking-tight">
+            Σ(Cor)<sup>2</sup>an
+          </span>
+        </div>
       </div>
     </section>
   );

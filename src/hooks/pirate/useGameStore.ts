@@ -11,7 +11,6 @@ import {
   type PlayerGameState,
   type PowerType,
   type Reaction,
-  type ChatMessage,
   type ToastPayload,
   type DefenseChoice,
   type SpectatorGameState,
@@ -38,7 +37,6 @@ interface GameStoreState {
    * server snapshot. The ReactionLayer renders these as floating emoji.
    */
   reactions: Reaction[];
-  chatMessages: ChatMessage[];
   error: string | null;
   kicked: boolean;
   // internal
@@ -86,8 +84,6 @@ interface GameStoreState {
 
   /** Emit a quick emoji reaction to the server (ephemeral broadcast). */
   sendReaction: (emoji: string) => void;
-  /** Send a chat message to everyone in the game. */
-  sendChat: (text: string) => void;
 
   pushToast: (t: Omit<ToastPayload, 'id'>) => void;
   dismissToast: (id: string) => void;
@@ -113,7 +109,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   results: null,
   toasts: [],
   reactions: [],
-  chatMessages: [],
   error: null,
   kicked: false,
   _initialized: false,
@@ -192,11 +187,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       // mutated in place above; we don't need reactivity on this internal
       // field, but writing it back keeps the snapshot honest).
       set({ _reactionTimers: timers });
-    });
-
-    socket.on(SERVER_EVENTS.chat, (msg: ChatMessage) => {
-      if (!msg?.id) return;
-      set((s) => ({ chatMessages: [...s.chatMessages.slice(-49), msg] }));
     });
 
     socket.on(SERVER_EVENTS.error, (payload: { message: string }) => {
@@ -451,14 +441,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     getSocket().emit(CLIENT_EVENTS.playerReact, { code, emoji });
   },
 
-  sendChat: (text) => {
-    const { code } = get();
-    if (!code) return;
-    const clean = text.trim().slice(0, 200);
-    if (!clean) return;
-    getSocket().emit(CLIENT_EVENTS.playerChat, { code, text: clean });
-  },
-
   pushToast: (t) => {
     const id = `local_${++toastId}`;
     set((s) => ({ toasts: [...s.toasts, { ...t, id }] }));
@@ -485,7 +467,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       results: null,
       toasts: [],
       reactions: [],
-      chatMessages: [],
       error: null,
       kicked: false,
       _reactionTimers: new Map(),

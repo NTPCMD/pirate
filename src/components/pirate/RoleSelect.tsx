@@ -240,9 +240,15 @@ export default function RoleSelect() {
         <p className="text-center text-xs text-muted-foreground mt-5">
           No account required · Works on phone, tablet & desktop
         </p>
-        <p className="text-center text-[10px] text-muted-foreground/60 mt-1.5 font-mono tracking-wide">
-          Created by Mr Stephen Corcoran · ΣlCorlán
-        </p>
+        {/* Σ(Cor)²an — creator logo */}
+        <div className="text-center mt-5 flex flex-col items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 text-sm font-mono font-bold tracking-wider text-foreground/70">
+            by Mr Stephen Corcoran
+          </span>
+          <span className="inline-flex items-center gap-1 text-lg font-mono font-extrabold tracking-tight gold-text select-none">
+            Σ(Cor)<sup>2</sup>an
+          </span>
+        </div>
       </motion.div>
     </div>
   );

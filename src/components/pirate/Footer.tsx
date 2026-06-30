@@ -25,7 +25,7 @@ export function GameFooter() {
         <div className="flex items-center gap-2 text-muted-foreground">
           <Anchor className="h-3.5 w-3.5 text-gold" />
           <span className="font-display text-sm gold-text">Pirate Game</span>
-          <span className="text-[10px] opacity-60 hidden sm:inline">by Mr Stephen Corcoran</span>
+          <span className="text-[10px] opacity-60 hidden sm:inline">by Mr Stephen Corcoran · <span className="gold-text font-mono font-bold">Σ(Cor)<sup>2</sup>an</span></span>
           {code && (
             <span className="ml-1 rounded-md bg-muted px-1.5 py-0.5 font-mono font-semibold text-foreground">
               {code}

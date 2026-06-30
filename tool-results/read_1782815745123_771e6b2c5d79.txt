@@ -1,0 +1,664 @@
+     1→'use client';
+     2→
+     3→import { useEffect, useRef } from 'react';
+     4→import { motion } from 'framer-motion';
+     5→import confetti from 'canvas-confetti';
+     6→import {
+     7→  Anchor,
+     8→  CloudRain,
+     9→  Coins,
+    10→  Crown,
+    11→  Download,
+    12→  Gem,
+    13→  Gift,
+    14→  Hourglass,
+    15→  Info,
+    16→  Landmark,
+    17→  Layers,
+    18→  LogOut,
+    19→  RotateCw,
+    20→  Shield,
+    21→  Skull,
+    22→  Sparkles,
+    23→  Target,
+    24→  Trophy,
+    25→  FlipHorizontal,
+    26→  type LucideIcon,
+    27→} from 'lucide-react';
+    28→import { useGameStore } from '@/hooks/pirate/useGameStore';
+    29→import { useSound } from '@/components/pirate/SoundManager';
+    30→import { Button } from '@/components/ui/button';
+    31→import { Badge } from '@/components/ui/badge';
+    32→import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+    33→import { formatMoney, type AwardResult } from '@/lib/pirate/types';
+    34→import { cn } from '@/lib/utils';
+    35→
+    36→// ---------------------------------------------------------------------------
+    37→// Award icon + color lookups
+    38→// ---------------------------------------------------------------------------
+    39→
+    40→const AWARD_ICON_MAP: Record<string, LucideIcon> = {
+    41→  Coins,
+    42→  Anchor,
+    43→  Gift,
+    44→  CloudRain,
+    45→  Layers,
+    46→  Landmark,
+    47→  Gem,
+    48→  Target,
+    49→  Shield,
+    50→  FlipHorizontal,
+    51→};
+    52→
+    53→const AWARD_COLOR: Record<string, { text: string; bg: string; ring: string }> = {
+    54→  mostMoneyFound: { text: 'text-amber-400', bg: 'bg-amber-500/15', ring: 'border-amber-500/40' },
+    55→  mostMoneyStolen: { text: 'text-sky-400', bg: 'bg-sky-500/15', ring: 'border-sky-500/40' },
+    56→  mostGenerous: { text: 'text-emerald-400', bg: 'bg-emerald-500/15', ring: 'border-emerald-500/40' },
+    57→  mostUnlucky: { text: 'text-slate-400', bg: 'bg-slate-500/15', ring: 'border-slate-500/40' },
+    58→  biggestMultiplier: { text: 'text-rose-400', bg: 'bg-rose-500/15', ring: 'border-rose-500/40' },
+    59→  biggestBank: { text: 'text-yellow-400', bg: 'bg-yellow-500/15', ring: 'border-yellow-500/40' },
+    60→  biggestSingleFind: { text: 'text-amber-400', bg: 'bg-amber-500/15', ring: 'border-amber-500/40' },
+    61→  mostAttacked: { text: 'text-red-400', bg: 'bg-red-500/15', ring: 'border-red-500/40' },
+    62→  mostShieldsUsed: { text: 'text-slate-300', bg: 'bg-slate-500/15', ring: 'border-slate-500/40' },
+    63→  mostMirrorsUsed: { text: 'text-fuchsia-400', bg: 'bg-fuchsia-500/15', ring: 'border-fuchsia-500/40' },
+    64→};
+    65→
+    66→const DEFAULT_AWARD_COLOR = {
+    67→  text: 'text-gold',
+    68→  bg: 'bg-gold/15',
+    69→  ring: 'border-gold/40',
+    70→};
+    71→
+    72→const MONEY_CATEGORIES = new Set<string>([
+    73→  'mostMoneyFound',
+    74→  'mostMoneyStolen',
+    75→  'mostGenerous',
+    76→  'mostUnlucky',
+    77→  'biggestMultiplier',
+    78→  'biggestBank',
+    79→  'biggestSingleFind',
+    80→]);
+    81→
+    82→function getAwardColor(category: string) {
+    83→  return AWARD_COLOR[category] ?? DEFAULT_AWARD_COLOR;
+    84→}
+    85→
+    86→function getAwardIcon(iconName: string): LucideIcon {
+    87→  return AWARD_ICON_MAP[iconName] ?? Trophy;
+    88→}
+    89→
+    90→function formatAwardValue(award: AwardResult): string {
+    91→  if (award.value === undefined || award.value === null) return '—';
+    92→  if (typeof award.value === 'string') return award.value;
+    93→  if (MONEY_CATEGORIES.has(award.category)) return formatMoney(award.value);
+    94→  return String(award.value);
+    95→}
+    96→
+    97→// ---------------------------------------------------------------------------
+    98→// Podium geometry
+    99→// ---------------------------------------------------------------------------
+   100→
+   101→const PODIUM_HEIGHT: Record<number, string> = {
+   102→  1: 'h-40 sm:h-52',
+   103→  2: 'h-28 sm:h-36',
+   104→  3: 'h-20 sm:h-28',
+   105→};
+   106→
+   107→// Staggered rise delays — 1st rises last for drama
+   108→const PODIUM_DELAY: Record<number, number> = { 2: 0, 3: 180, 1: 360 };
+   109→
+   110→// CSS-only continuous confetti pieces for the podium backdrop. Pirate palette:
+   111→// gold / amber / ocean / rust / parchment cream. Falls slowly with random
+   112→// rotation. Honors prefers-reduced-motion (animation disabled globally).
+   113→interface ConfettiPiece {
+   114→  left: number; // % horizontal position
+   115→  width: number;
+   116→  height: number;
+   117→  color: string;
+   118→  duration: number; // s
+   119→  delay: number; // s
+   120→  rotate: number; // deg
+   121→  round: boolean;
+   122→}
+   123→const CONFETTI_COLORS = ['#f5c542', '#f0a830', '#e67e22', '#1abc9c', '#fde68a', '#cd7f32'];
+   124→const CONFETTI_PIECES: ConfettiPiece[] = Array.from({ length: 40 }, (_, i) => {
+   125→  const seed = (i * 37) % 100;
+   126→  return {
+   127→    left: (i * 7 + 5) % 100,
+   128→    width: 6 + ((seed * 13) % 5),
+   129→    height: 10 + ((seed * 7) % 8),
+   130→    color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+   131→    duration: 3.4 + ((seed * 11) % 30) / 10, // 3.4s – 6.4s
+   132→    delay: ((seed * 17) % 60) / 10, // 0s – 6s
+   133→    rotate: (seed * 9) % 360,
+   134→    round: i % 5 === 0,
+   135→  };
+   136→});
+   137→
+   138→function fireCelebrationConfetti() {
+   139→  const colors = ['#f5c542', '#f0a830', '#e67e22', '#1abc9c', '#fde68a'];
+   140→  confetti({
+   141→    particleCount: 120,
+   142→    spread: 90,
+   143→    origin: { y: 0.55 },
+   144→    colors,
+   145→    scalar: 1.1,
+   146→  });
+   147→  setTimeout(() => {
+   148→    confetti({ particleCount: 60, angle: 60, spread: 70, origin: { x: 0, y: 0.65 }, colors });
+   149→    confetti({ particleCount: 60, angle: 120, spread: 70, origin: { x: 1, y: 0.65 }, colors });
+   150→  }, 220);
+   151→  setTimeout(() => {
+   152→    confetti({ particleCount: 50, spread: 100, startVelocity: 45, origin: { y: 0.5 }, colors });
+   153→  }, 600);
+   154→}
+   155→
+   156→// ---------------------------------------------------------------------------
+   157→// Component
+   158→// ---------------------------------------------------------------------------
+   159→
+   160→export default function EndGameResults({ role }: { role: 'host' | 'player' | 'spectator' }) {
+   161→  const results = useGameStore((s) => s.results);
+   162→  const reset = useGameStore((s) => s.reset);
+   163→  const resetGame = useGameStore((s) => s.resetGame);
+   164→  const hostExport = useGameStore((s) => s.hostExport);
+   165→  const pushToast = useGameStore((s) => s.pushToast);
+   166→  const { play } = useSound();
+   167→  const firedRef = useRef(false);
+   168→
+   169→  // Fire confetti + triumphant win sound once on mount
+   170→  useEffect(() => {
+   171→    if (firedRef.current) return;
+   172→    firedRef.current = true;
+   173→    const t = setTimeout(() => {
+   174→      fireCelebrationConfetti();
+   175→      play('win');
+   176→    }, 250);
+   177→    return () => clearTimeout(t);
+   178→  }, [play]);
+   179→
+   180→  // Loading state — results not yet available
+   181→  if (!results) {
+   182→    return (
+   183→      <div className="min-h-[calc(100vh-3rem)] flex items-center justify-center p-6">
+   184→        <div className="flex flex-col items-center gap-3" role="status" aria-live="polite">
+   185→          <div className="h-10 w-10 rounded-full border-2 border-gold/30 border-t-gold animate-spin" />
+   186→          <p className="text-sm text-muted-foreground display-font">Tallying the loot…</p>
+   187→        </div>
+   188→      </div>
+   189→    );
+   190→  }
+   191→
+   192→  const { code, endedAt, ranking, awards } = results;
+   193→
+   194→  // Empty ranking — no one finished
+   195→  if (!ranking || ranking.length === 0) {
+   196→    return (
+   197→      <div className="min-h-[calc(100vh-3rem)] flex items-center justify-center p-6">
+   198→        <div className="pirate-card p-8 text-center max-w-md">
+   199→          <Skull className="h-12 w-12 text-rust mx-auto mb-3" aria-hidden />
+   200→          <h2 className="display-font text-2xl gold-text mb-2">No Survivors</h2>
+   201→          <p className="text-sm text-muted-foreground mb-6">
+   202→            No players finished the game. The seas be empty.
+   203→          </p>
+   204→          <Button onClick={reset} size="lg" className="min-h-11 bg-gold text-gold-foreground hover:bg-gold/90 btn-pirate">
+   205→            <RotateCw className="h-4 w-4" />
+   206→            {role === 'host' ? 'New Game' : 'Play Again'}
+   207→          </Button>
+   208→        </div>
+   209→      </div>
+   210→    );
+   211→  }
+   212→
+   213→  const winner = ranking.find((r) => r.rank === 1);
+   214→  const endedTime = new Date(endedAt).toLocaleTimeString([], {
+   215→    hour: '2-digit',
+   216→    minute: '2-digit',
+   217→  });
+   218→
+   219→  // Podium visual ordering: left=2nd, center=1st, right=3rd
+   220→  const podiumRanks = [2, 1, 3];
+   221→  const podiumEntries = podiumRanks.map((rank) => ({
+   222→    rank,
+   223→    entry: ranking.find((r) => r.rank === rank),
+   224→  }));
+   225→
+   226→  async function handleExport() {
+   227→    try {
+   228→      const data = await hostExport();
+   229→      if (!data || data.error) {
+   230→        pushToast({
+   231→          title: 'Export failed',
+   232→          description: data?.error ?? 'Could not export results.',
+   233→          tone: 'bad',
+   234→          animation: 'shake',
+   235→        });
+   236→        return;
+   237→      }
+   238→      const json = JSON.stringify(data, null, 2);
+   239→      const blob = new Blob([json], { type: 'application/json' });
+   240→      const url = URL.createObjectURL(blob);
+   241→      const a = document.createElement('a');
+   242→      a.href = url;
+   243→      a.download = `pirate-game-${code}-${Date.now()}.json`;
+   244→      document.body.appendChild(a);
+   245→      a.click();
+   246→      document.body.removeChild(a);
+   247→      URL.revokeObjectURL(url);
+   248→      pushToast({
+   249→        title: 'Results exported!',
+   250→        description: 'Your treasure log has been downloaded.',
+   251→        tone: 'good',
+   252→        animation: 'confetti',
+   253→      });
+   254→    } catch {
+   255→      pushToast({
+   256→        title: 'Export failed',
+   257→        description: 'An unexpected error occurred.',
+   258→        tone: 'bad',
+   259→        animation: 'shake',
+   260→      });
+   261→    }
+   262→  }
+   263→
+   264→  return (
+   265→    <section aria-label="Game results" className="min-h-[calc(100vh-3rem)] p-4 sm:p-6">
+   266→      <div className="mx-auto max-w-5xl space-y-6 sm:space-y-8">
+   267→        {/* === 1. Winner hero + Podium === */}
+   268→        <header className="text-center space-y-2 pt-2">
+   269→          <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs text-gold">
+   270→            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+   271→            <span className="font-mono tracking-wider">GAME {code}</span>
+   272→            <span className="opacity-60" aria-hidden>·</span>
+   273→            <span>Ended at {endedTime}</span>
+   274→          </div>
+   275→          <h1 className="display-font text-4xl sm:text-5xl md:text-6xl gold-text leading-tight">
+   276→            {winner ? `${winner.name} wins!` : 'Game Over'}
+   277→          </h1>
+   278→          {winner ? (
+   279→            <p className="text-sm sm:text-base text-muted-foreground">
+   280→              With a final haul of{' '}
+   281→              <span className="font-mono font-semibold text-gold">
+   282→                {formatMoney(winner.finalScore)}
+   283→              </span>
+   284→            </p>
+   285→          ) : (
+   286→            <p className="text-sm sm:text-base text-muted-foreground">
+   287→              The voyage has come to an end.
+   288→            </p>
+   289→          )}
+   290→        </header>
+   291→
+   292→        <div
+   293→          className="relative flex items-end justify-center gap-2 sm:gap-4 md:gap-6 px-2 overflow-hidden"
+   294→          aria-label="Podium — top three players"
+   295→          role="group"
+   296→        >
+   297→          {/* Background confetti — CSS-only continuous fall behind the podium */}
+   298→          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
+   299→            {CONFETTI_PIECES.map((c, i) => (
+   300→              <span
+   301→                key={i}
+   302→                className="confetti-piece"
+   303→                style={{
+   304→                  left: `${c.left}%`,
+   305→                  background: c.color,
+   306→                  animationDuration: `${c.duration}s`,
+   307→                  animationDelay: `${c.delay}s`,
+   308→                  transform: `translateY(0) rotateZ(${c.rotate}deg)`,
+   309→                  width: `${c.width}px`,
+   310→                  height: `${c.height}px`,
+   311→                  borderRadius: c.round ? '999px' : '2px',
+   312→                }}
+   313→              />
+   314→            ))}
+   315→          </div>
+   316→
+   317→          {podiumEntries.map(({ rank, entry }) => {
+   318→            const delay = PODIUM_DELAY[rank] ?? 0;
+   319→            const isFirst = rank === 1;
+   320→            const isSecond = rank === 2;
+   321→            const isEmpty = !entry;
+   322→            const heightClass = PODIUM_HEIGHT[rank] ?? 'h-24';
+   323→            const podiumSurface = isFirst
+   324→              ? 'bg-gradient-to-b from-gold/45 to-gold/10 border-gold/60'
+   325→              : isSecond
+   326→                ? 'bg-gradient-to-b from-slate-400/30 to-slate-500/10 border-slate-400/40'
+   327→                : 'bg-gradient-to-b from-rust/30 to-rust/5 border-rust/40';
+   328→            const metallicLabelClass = isFirst
+   329→              ? 'label-gold-metal'
+   330→              : isSecond
+   331→                ? 'label-silver-metal'
+   332→                : 'label-bronze-metal';
+   333→            return (
+   334→              <div
+   335→                key={rank}
+   336→                className={cn(
+   337→                  'flex-1 max-w-[180px] flex flex-col items-center relative z-[1]',
+   338→                  isFirst && 'order-2 podium-spotlight',
+   339→                  rank === 2 && 'order-1',
+   340→                  rank === 3 && 'order-3',
+   341→                )}
+   342→              >
+   343→                {/* Crown floating above 1st place */}
+   344→                {isFirst && !isEmpty && (
+   345→                  <motion.div
+   346→                    initial={{ opacity: 0, y: -10, rotate: -15 }}
+   347→                    animate={{ opacity: 1, y: 0, rotate: 0 }}
+   348→                    transition={{ delay: 1, type: 'spring', stiffness: 280, damping: 18 }}
+   349→                    className="mb-2 crown-glow"
+   350→                    aria-hidden
+   351→                  >
+   352→                    <Crown className="h-7 w-7 sm:h-9 sm:w-9" />
+   353→                  </motion.div>
+   354→                )}
+   355→
+   356→                {/* Name + score bubble above podium */}
+   357→                <div className="mb-2 text-center min-h-[3rem] px-1">
+   358→                  {isEmpty ? (
+   359→                    <span className="text-muted-foreground/50 text-2xl font-bold">—</span>
+   360→                  ) : (
+   361→                    <>
+   362→                      <div className="text-xs sm:text-sm font-semibold truncate max-w-[150px] flex items-center justify-center gap-1.5">
+   363→                        <span className="truncate">{entry!.name}</span>
+   364→                        {entry!.isHost && (
+   365→                          <Badge variant="secondary" className="text-[9px] py-0 px-1">
+   366→                            Host
+   367→                          </Badge>
+   368→                        )}
+   369→                      </div>
+   370→                      <div className="text-base sm:text-lg font-mono font-bold gold-text-strong">
+   371→                        {formatMoney(entry!.finalScore)}
+   372→                      </div>
+   373→                    </>
+   374→                  )}
+   375→                </div>
+   376→
+   377→                {/* Podium block */}
+   378→                <div
+   379→                  className={cn(
+   380→                    'animate-podium-rise w-full rounded-t-xl border-t border-x flex flex-col items-center justify-end pb-3 pt-2',
+   381→                    podiumSurface,
+   382→                    heightClass,
+   383→                  )}
+   384→                  style={{ animationDelay: `${delay}ms`, opacity: 0 }}
+   385→                >
+   386→                  <span
+   387→                    className={cn(
+   388→                      'display-font text-3xl sm:text-4xl font-bold',
+   389→                      isFirst ? 'gold-text-strong' : 'text-foreground/80',
+   390→                    )}
+   391→                  >
+   392→                    {rank}
+   393→                  </span>
+   394→                  {/* Metallic 1ST / 2ND / 3RD label */}
+   395→                  <span
+   396→                    className={cn(
+   397→                      'text-[10px] sm:text-xs uppercase tracking-[0.18em] mt-0.5',
+   398→                      metallicLabelClass,
+   399→                    )}
+   400→                  >
+   401→                    {isFirst ? '1ST' : isSecond ? '2ND' : '3RD'}
+   402→                  </span>
+   403→                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+   404→                    {isFirst ? 'Champion' : rank === 2 ? 'Runner-up' : 'Third'}
+   405→                  </span>
+   406→                </div>
+   407→
+   408→                {/* Pulsing gold ring around 1st place "avatar" zone */}
+   409→                {isFirst && !isEmpty && (
+   410→                  <span
+   411→                    className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-9 w-9 sm:h-11 sm:w-11 rounded-full pulse-gold-ring"
+   412→                    aria-hidden
+   413→                  />
+   414→                )}
+   415→              </div>
+   416→            );
+   417→          })}
+   418→        </div>
+   419→
+   420→        {/* === 2. Full ranking table === */}
+   421→        <section aria-label="Full standings" className="pirate-card p-4 sm:p-6">
+   422→          <div className="flex items-center gap-2 mb-3">
+   423→            <Trophy className="h-4 w-4 text-gold" aria-hidden />
+   424→            <h2 className="display-font text-xl sm:text-2xl">Final Standings</h2>
+   425→          </div>
+   426→          {/* column header (desktop only) */}
+   427→          <div className="hidden sm:grid grid-cols-[2rem_1fr_5rem_5rem_6rem] gap-3 px-3 pb-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/60">
+   428→            <div className="text-center">#</div>
+   429→            <div>Pirate</div>
+   430→            <div className="text-right">Banked</div>
+   431→            <div className="text-right">Running</div>
+   432→            <div className="text-right">Final</div>
+   433→          </div>
+   434→          <div className="mt-2 space-y-1.5 max-h-96 overflow-y-auto scroll-thin pr-1" role="list">
+   435→            {ranking.map((row, i) => {
+   436→              const isTop3 = row.rank <= 3;
+   437→              const rowTone = isTop3
+   438→                ? row.rank === 1
+   439→                  ? 'border-gold/50 bg-gold/10'
+   440→                  : row.rank === 2
+   441→                    ? 'border-slate-400/40 bg-slate-400/10'
+   442→                    : 'border-rust/40 bg-rust/10'
+   443→                : 'border-border/60 bg-card/40';
+   444→              return (
+   445→                <motion.div
+   446→                  key={row.playerId}
+   447→                  role="listitem"
+   448→                  initial={{ opacity: 0, x: -12 }}
+   449→                  animate={{ opacity: 1, x: 0 }}
+   450→                  transition={{ delay: 0.5 + i * 0.06, duration: 0.35 }}
+   451→                  className={cn(
+   452→                    'grid grid-cols-[2rem_1fr_auto] sm:grid-cols-[2rem_1fr_5rem_5rem_6rem] gap-2 sm:gap-3 items-center rounded-lg border px-3 py-2',
+   453→                    rowTone,
+   454→                  )}
+   455→                >
+   456→                  <div className="text-center font-mono font-bold text-sm sm:text-base">
+   457→                    {row.rank}
+   458→                  </div>
+   459→                  <div className="min-w-0 flex items-center gap-1.5">
+   460→                    <span className="truncate font-medium text-sm sm:text-base">{row.name}</span>
+   461→                    {row.isHost && (
+   462→                      <Badge variant="secondary" className="text-[9px] py-0 px-1">
+   463→                        Host
+   464→                      </Badge>
+   465→                    )}
+   466→                  </div>
+   467→                  {/* Mobile: compact combined cell */}
+   468→                  <div className="sm:hidden flex items-center justify-end gap-2 text-xs">
+   469→                    <span className="text-muted-foreground">
+   470→                      B <span className="font-mono">{formatMoney(row.banked)}</span>
+   471→                    </span>
+   472→                    <span className="text-muted-foreground">
+   473→                      R <span className="font-mono">{formatMoney(row.running)}</span>
+   474→                    </span>
+   475→                    <span className="font-mono font-bold gold-text">{formatMoney(row.finalScore)}</span>
+   476→                  </div>
+   477→                  <div className="hidden sm:block text-right font-mono text-sm tabular-nums">
+   478→                    {formatMoney(row.banked)}
+   479→                  </div>
+   480→                  <div className="hidden sm:block text-right font-mono text-sm tabular-nums">
+   481→                    {formatMoney(row.running)}
+   482→                  </div>
+   483→                  <div className="hidden sm:block text-right font-mono text-sm tabular-nums font-bold">
+   484→                    {formatMoney(row.finalScore)}
+   485→                  </div>
+   486→                </motion.div>
+   487→              );
+   488→            })}
+   489→          </div>
+   490→        </section>
+   491→
+   492→        {/* === 3. Awards grid === */}
+   493→        {awards && awards.length > 0 && (
+   494→          <section aria-label="Pirate awards" className="pirate-card p-4 sm:p-6">
+   495→            <div className="flex items-center gap-2 mb-4">
+   496→              <Sparkles className="h-4 w-4 text-gold" aria-hidden />
+   497→              <h2 className="display-font text-xl sm:text-2xl">Pirate Awards</h2>
+   498→            </div>
+   499→            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+   500→              {awards.map((award, i) => {
+   501→                const Icon = getAwardIcon(award.icon);
+   502→                const color = getAwardColor(award.category);
+   503→                return (
+   504→                  <motion.article
+   505→                    key={`${award.category}-${i}`}
+   506→                    initial={{ opacity: 0, y: 16, scale: 0.95 }}
+   507→                    animate={{ opacity: 1, y: 0, scale: 1 }}
+   508→                    transition={{
+   509→                      delay: 0.7 + i * 0.08,
+   510→                      type: 'spring',
+   511→                      stiffness: 240,
+   512→                      damping: 22,
+   513→                    }}
+   514→                    className={cn(
+   515→                      'relative overflow-hidden rounded-xl border p-3 sm:p-4 flex flex-col items-center text-center gap-2',
+   516→                      color.bg,
+   517→                      color.ring,
+   518→                    )}
+   519→                  >
+   520→                    <div
+   521→                      className={cn(
+   522→                        'flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border bg-card/70',
+   523→                        color.ring,
+   524→                      )}
+   525→                    >
+   526→                      <Icon className={cn('h-5 w-5 sm:h-6 sm:w-6', color.text)} aria-hidden />
+   527→                    </div>
+   528→                    <div className="min-w-0 w-full">
+   529→                      <div className="text-xs sm:text-sm font-semibold leading-tight">
+   530→                        {award.label}
+   531→                      </div>
+   532→                      {award.playerName && (
+   533→                        <div className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 truncate">
+   534→                          {award.playerName}
+   535→                        </div>
+   536→                      )}
+   537→                    </div>
+   538→                    <div className={cn('font-mono font-bold text-sm sm:text-base', color.text)}>
+   539→                      {formatAwardValue(award)}
+   540→                    </div>
+   541→                  </motion.article>
+   542→                );
+   543→              })}
+   544→            </div>
+   545→          </section>
+   546→        )}
+   547→
+   548→        {/* === 4. Actions / sign-off === */}
+   549→        <section
+   550→          aria-label="End of game actions"
+   551→          className="pirate-card p-4 sm:p-6 flex flex-col items-center gap-4"
+   552→        >
+   553→          <p className="text-sm sm:text-base text-center text-muted-foreground display-font max-w-md">
+   554→            {role === 'host'
+   555→              ? 'Thanks for hosting, Captain! May your next voyage be rich with plunder.'
+   556→              : role === 'spectator'
+   557→                ? 'Thanks for watching, matey! Fair winds and following seas.'
+   558→                : 'Thanks for playing, matey! Fair winds and following seas.'}
+   559→          </p>
+   560→
+   561→          {role === 'host' ? (
+   562→            <>
+   563→              {/* Primary CTA — Play Again keeps the crew together */}
+   564→              <div className="flex flex-col items-center gap-2 w-full">
+   565→                <Tooltip>
+   566→                  <TooltipTrigger asChild>
+   567→                    <Button
+   568→                      onClick={() => {
+   569→                        play('click');
+   570→                        resetGame();
+   571→                        pushToast({
+   572→                          title: 'New game ready!',
+   573→                          description: 'Same crew, fresh boards. Setting sail again.',
+   574→                          tone: 'good',
+   575→                          animation: 'confetti',
+   576→                        });
+   577→                      }}
+   578→                      size="lg"
+   579→                      className="min-h-12 px-6 text-base bg-gold text-gold-foreground hover:bg-gold/90 btn-pirate shadow-lg shadow-gold/30 ring-2 ring-gold/40"
+   580→                      aria-label="Start a fresh game with the same players and new boards"
+   581→                    >
+   582→                      <RotateCw className="h-5 w-5" />
+   583→                      Play Again
+   584→                    </Button>
+   585→                  </TooltipTrigger>
+   586→                  <TooltipContent side="top" className="max-w-xs text-center">
+   587→                    Start a fresh game — everyone keeps their name and gets a new board.
+   588→                  </TooltipContent>
+   589→                </Tooltip>
+   590→                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   591→                  <Info className="h-3 w-3 text-gold" aria-hidden />
+   592→                  Same crew, new boards — scores reset to zero.
+   593→                </p>
+   594→              </div>
+   595→
+   596→              {/* Secondary actions — Export + leave-and-start-over */}
+   597→              <div className="flex flex-wrap items-center justify-center gap-3">
+   598→                <Button
+   599→                  onClick={handleExport}
+   600→                  size="lg"
+   601→                  variant="outline"
+   602→                  className="min-h-11 btn-pirate"
+   603→                  aria-label="Export results as a JSON file"
+   604→                >
+   605→                  <Download className="h-4 w-4" />
+   606→                  Export Results
+   607→                </Button>
+   608→                <Button
+   609→                  onClick={() => {
+   610→                    play('click');
+   611→                    reset();
+   612→                  }}
+   613→                  size="lg"
+   614→                  variant="ghost"
+   615→                  className="min-h-11 btn-pirate text-muted-foreground hover:text-foreground"
+   616→                  aria-label="Leave this game and start a brand new one"
+   617→                >
+   618→                  <LogOut className="h-4 w-4" />
+   619→                  New Game
+   620→                </Button>
+   621→              </div>
+   622→            </>
+   623→          ) : (
+   624→            <div className="flex flex-col items-center gap-4 w-full">
+   625→              {/* Waiting state — only the host can reset */}
+   626→              <div
+   627→                className="flex items-center gap-2.5 rounded-lg border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-center"
+   628→                role="status"
+   629→                aria-live="polite"
+   630→              >
+   631→                <Hourglass className="h-4 w-4 text-gold animate-pulse" aria-hidden />
+   632→                <span className="text-foreground/90">
+   633→                  {role === 'spectator'
+   634→                    ? 'Waiting for the host to start a new game…'
+   635→                    : 'Waiting for the host to start a new game…'}
+   636→                </span>
+   637→              </div>
+   638→              <div className="flex flex-wrap items-center justify-center gap-3">
+   639→                <Button
+   640→                  onClick={() => {
+   641→                    play('click');
+   642→                    reset();
+   643→                  }}
+   644→                  size="lg"
+   645→                  variant="ghost"
+   646→                  className="min-h-11 btn-pirate text-muted-foreground hover:text-foreground"
+   647→                  aria-label={
+   648→                    role === 'spectator'
+   649→                      ? 'Leave the spectator session'
+   650→                      : 'Leave the game'
+   651→                  }
+   652→                >
+   653→                  <LogOut className="h-4 w-4" />
+   654→                  Leave
+   655→                </Button>
+   656→              </div>
+   657→            </div>
+   658→          )}
+   659→        </section>
+   660→      </div>
+   661→    </section>
+   662→  );
+   663→}
+   664→

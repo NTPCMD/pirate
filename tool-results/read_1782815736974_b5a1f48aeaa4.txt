@@ -1,0 +1,1026 @@
+     1→@import "tailwindcss";
+     2→@import "tw-animate-css";
+     3→
+     4→@custom-variant dark (&:is(.dark *));
+     5→
+     6→@theme inline {
+     7→  --color-background: var(--background);
+     8→  --color-foreground: var(--foreground);
+     9→  --font-sans: var(--font-geist-sans);
+    10→  --font-mono: var(--font-geist-mono);
+    11→  --font-display: var(--font-pirata);
+    12→  --color-sidebar-ring: var(--sidebar-ring);
+    13→  --color-sidebar-border: var(--sidebar-border);
+    14→  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    15→  --color-sidebar-accent: var(--sidebar-accent);
+    16→  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    17→  --color-sidebar-primary: var(--sidebar-primary);
+    18→  --color-sidebar-foreground: var(--sidebar-foreground);
+    19→  --color-sidebar: var(--sidebar);
+    20→  --color-chart-5: var(--chart-5);
+    21→  --color-chart-4: var(--chart-4);
+    22→  --color-chart-3: var(--chart-3);
+    23→  --color-chart-2: var(--chart-2);
+    24→  --color-chart-1: var(--chart-1);
+    25→  --color-ring: var(--ring);
+    26→  --color-input: var(--input);
+    27→  --color-border: var(--border);
+    28→  --color-destructive: var(--destructive);
+    29→  --color-accent-foreground: var(--accent-foreground);
+    30→  --color-accent: var(--accent);
+    31→  --color-muted-foreground: var(--muted-foreground);
+    32→  --color-muted: var(--muted);
+    33→  --color-secondary-foreground: var(--secondary-foreground);
+    34→  --color-secondary: var(--secondary);
+    35→  --color-primary-foreground: var(--primary-foreground);
+    36→  --color-primary: var(--primary);
+    37→  --color-popover-foreground: var(--popover-foreground);
+    38→  --color-popover: var(--popover);
+    39→  --color-card-foreground: var(--card-foreground);
+    40→  --color-card: var(--card);
+    41→  /* pirate themed tokens */
+    42→  --color-gold: var(--gold);
+    43→  --color-gold-foreground: var(--gold-foreground);
+    44→  --color-ocean: var(--ocean);
+    45→  --color-ocean-foreground: var(--ocean-foreground);
+    46→  --color-rust: var(--rust);
+    47→  --radius-sm: calc(var(--radius) - 4px);
+    48→  --radius-md: calc(var(--radius) - 2px);
+    49→  --radius-lg: var(--radius);
+    50→  --radius-xl: calc(var(--radius) + 4px);
+    51→}
+    52→
+    53→:root {
+    54→  --radius: 0.75rem;
+    55→  /* Pirate Treasure light theme — warm parchment + gold + ocean teal */
+    56→  --background: oklch(0.97 0.015 85);
+    57→  --foreground: oklch(0.22 0.03 60);
+    58→  --card: oklch(0.99 0.012 85);
+    59→  --card-foreground: oklch(0.22 0.03 60);
+    60→  --popover: oklch(0.99 0.012 85);
+    61→  --popover-foreground: oklch(0.22 0.03 60);
+    62→  --primary: oklch(0.46 0.13 195);
+    63→  --primary-foreground: oklch(0.99 0.01 85);
+    64→  --secondary: oklch(0.93 0.03 75);
+    65→  --secondary-foreground: oklch(0.28 0.04 60);
+    66→  --muted: oklch(0.93 0.015 80);
+    67→  --muted-foreground: oklch(0.42 0.03 70);
+    68→  --accent: oklch(0.88 0.06 80);
+    69→  --accent-foreground: oklch(0.3 0.05 60);
+    70→  --destructive: oklch(0.55 0.21 28);
+    71→  --border: oklch(0.88 0.025 75);
+    72→  --input: oklch(0.9 0.02 78);
+    73→  --ring: oklch(0.5 0.12 195);
+    74→  --chart-1: oklch(0.62 0.16 195);
+    75→  --chart-2: oklch(0.7 0.15 80);
+    76→  --chart-3: oklch(0.55 0.18 28);
+    77→  --chart-4: oklch(0.6 0.15 145);
+    78→  --chart-5: oklch(0.55 0.2 300);
+    79→  --sidebar: oklch(0.97 0.015 85);
+    80→  --sidebar-foreground: oklch(0.22 0.03 60);
+    81→  --sidebar-primary: oklch(0.46 0.13 195);
+    82→  --sidebar-primary-foreground: oklch(0.99 0.01 85);
+    83→  --sidebar-accent: oklch(0.93 0.03 75);
+    84→  --sidebar-accent-foreground: oklch(0.28 0.04 60);
+    85→  --sidebar-border: oklch(0.88 0.025 75);
+    86→  --sidebar-ring: oklch(0.5 0.12 195);
+    87→  /* pirate extras — green & white theme by Mr Stephen Corcoran */
+    88→  --gold: oklch(0.55 0.17 155);
+    89→  --gold-foreground: oklch(0.99 0.005 155);
+    90→  /* darker green used for text on light backgrounds — WCAG AA compliant */
+    91→  --gold-strong: oklch(0.42 0.16 150);
+    92→  --gold-ink: oklch(0.35 0.14 148);
+    93→  --ocean: oklch(0.45 0.12 200);
+    94→  --ocean-foreground: oklch(0.99 0.005 155);
+    95→  --rust: oklch(0.55 0.17 38);
+    96→}
+    97→
+    98→.dark {
+    99→  /* Deep night-ocean dark theme */
+   100→  --background: oklch(0.16 0.025 235);
+   101→  --foreground: oklch(0.94 0.02 85);
+   102→  --card: oklch(0.21 0.03 235);
+   103→  --card-foreground: oklch(0.94 0.02 85);
+   104→  --popover: oklch(0.21 0.03 235);
+   105→  --popover-foreground: oklch(0.94 0.02 85);
+   106→  --primary: oklch(0.7 0.15 195);
+   107→  --primary-foreground: oklch(0.16 0.03 235);
+   108→  --secondary: oklch(0.27 0.035 230);
+   109→  --secondary-foreground: oklch(0.94 0.02 85);
+   110→  --muted: oklch(0.25 0.03 232);
+   111→  --muted-foreground: oklch(0.7 0.025 80);
+   112→  --accent: oklch(0.32 0.06 80);
+   113→  --accent-foreground: oklch(0.95 0.03 85);
+   114→  --destructive: oklch(0.65 0.2 25);
+   115→  --border: oklch(1 0 0 / 12%);
+   116→  --input: oklch(1 0 0 / 14%);
+   117→  --ring: oklch(0.6 0.13 195);
+   118→  --chart-1: oklch(0.62 0.16 195);
+   119→  --chart-2: oklch(0.78 0.16 85);
+   120→  --chart-3: oklch(0.6 0.2 28);
+   121→  --chart-4: oklch(0.6 0.16 145);
+   122→  --chart-5: oklch(0.62 0.22 300);
+   123→  --sidebar: oklch(0.19 0.03 235);
+   124→  --sidebar-foreground: oklch(0.94 0.02 85);
+   125→  --sidebar-primary: oklch(0.7 0.15 195);
+   126→  --sidebar-primary-foreground: oklch(0.16 0.03 235);
+   127→  --sidebar-accent: oklch(0.27 0.035 230);
+   128→  --sidebar-accent-foreground: oklch(0.94 0.02 85);
+   129→  --sidebar-border: oklch(1 0 0 / 12%);
+   130→  --sidebar-ring: oklch(0.6 0.13 195);
+   131→  --gold: oklch(0.65 0.2 150);
+   132→  --gold-foreground: oklch(0.15 0.04 155);
+   133→  /* dark theme green — vivid and readable */
+   134→  --gold-strong: oklch(0.65 0.2 150);
+   135→  --gold-ink: oklch(0.78 0.18 150);
+   136→  --ocean: oklch(0.52 0.14 200);
+   137→  --ocean-foreground: oklch(0.99 0.005 155);
+   138→  --rust: oklch(0.62 0.18 38);
+   139→}
+   140→
+   141→@layer base {
+   142→  * {
+   143→    @apply border-border outline-ring/50;
+   144→  }
+   145→  body {
+   146→    @apply bg-background text-foreground;
+   147→    background-image:
+   148→      radial-gradient(circle at 15% 20%, color-mix(in oklch, var(--ocean) 8%, transparent) 0, transparent 40%),
+   149→      radial-gradient(circle at 85% 80%, color-mix(in oklch, var(--gold) 7%, transparent) 0, transparent 40%);
+   150→    background-attachment: fixed;
+   151→  }
+   152→  .dark body {
+   153→    background-image:
+   154→      radial-gradient(circle at 15% 20%, color-mix(in oklch, var(--ocean) 14%, transparent) 0, transparent 45%),
+   155→      radial-gradient(circle at 85% 80%, color-mix(in oklch, var(--gold) 9%, transparent) 0, transparent 45%);
+   156→  }
+   157→  /* Subtle button press feedback — global, GPU-friendly (transform only).
+   158→     Framer-motion whileTap inline transforms win where they are set. */
+   159→  button:not(:disabled):active {
+   160→    transform: scale(0.97);
+   161→  }
+   162→}
+   163→
+   164→/* --------------------------------------------------------------------------
+   165→   Pirate game component utilities
+   166→   -------------------------------------------------------------------------- */
+   167→
+   168→@layer components {
+   169→  .pirate-card {
+   170→    @apply rounded-xl border border-border bg-card/90 backdrop-blur-sm shadow-sm;
+   171→    transition: box-shadow 220ms ease, border-color 220ms ease, transform 220ms ease;
+   172→  }
+   173→  .pirate-card-hover:hover {
+   174→    border-color: color-mix(in oklch, var(--gold) 45%, var(--border));
+   175→    box-shadow:
+   176→      0 0 0 1px color-mix(in oklch, var(--gold) 35%, transparent),
+   177→      0 8px 32px color-mix(in oklch, var(--gold) 18%, transparent),
+   178→      0 2px 8px rgba(0, 0, 0, 0.18);
+   179→  }
+   180→  .pirate-panel {
+   181→    @apply rounded-xl border border-border/70 bg-card/70 backdrop-blur-sm;
+   182→  }
+   183→  .gold-text {
+   184→    color: var(--gold-strong);
+   185→    /* Light mode: subtle dark drop shadow for contrast against parchment */
+   186→    text-shadow:
+   187→      0 1px 1px rgba(40, 28, 6, 0.18),
+   188→      0 0 1px color-mix(in oklch, var(--gold-strong) 50%, transparent);
+   189→  }
+   190→  .dark .gold-text {
+   191→    color: var(--gold);
+   192→    text-shadow:
+   193→      0 1px 0 color-mix(in oklch, var(--gold) 40%, transparent),
+   194→      0 0 12px color-mix(in oklch, var(--gold) 35%, transparent);
+   195→  }
+   196→  /* Strong variant — for body-weight gold text (scores, labels) where the
+   197→     surrounding tint is lighter than for headings. */
+   198→  .gold-text-strong {
+   199→    color: var(--gold-ink);
+   200→    text-shadow: 0 1px 1px rgba(40, 28, 6, 0.22);
+   201→  }
+   202→  .dark .gold-text-strong {
+   203→    color: var(--gold);
+   204→    text-shadow: 0 0 10px color-mix(in oklch, var(--gold) 35%, transparent);
+   205→  }
+   206→  .display-font {
+   207→    font-family: var(--font-display), var(--font-sans), serif;
+   208→    letter-spacing: 0.02em;
+   209→  }
+   210→  .scroll-thin {
+   211→    scrollbar-width: thin;
+   212→    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 40%, transparent) transparent;
+   213→  }
+   214→  .scroll-thin::-webkit-scrollbar {
+   215→    width: 8px;
+   216→    height: 8px;
+   217→  }
+   218→  .scroll-thin::-webkit-scrollbar-thumb {
+   219→    background: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+   220→    border-radius: 999px;
+   221→  }
+   222→  .scroll-thin::-webkit-scrollbar-track {
+   223→    background: transparent;
+   224→  }
+   225→
+   226→  /* ---- Treasure-map board tiles ----------------------------------------- */
+   227→  .treasure-tile {
+   228→    background-image:
+   229→      radial-gradient(circle at 30% 25%, color-mix(in oklch, var(--gold) 10%, transparent) 0, transparent 55%),
+   230→      radial-gradient(circle at 75% 80%, color-mix(in oklch, var(--rust) 8%, transparent) 0, transparent 50%),
+   231→      repeating-linear-gradient(
+   232→        135deg,
+   233→        color-mix(in oklch, var(--muted-foreground) 5%, transparent) 0,
+   234→        color-mix(in oklch, var(--muted-foreground) 5%, transparent) 1px,
+   235→        transparent 1px,
+   236→        transparent 4px
+   237→      );
+   238→    box-shadow:
+   239→      inset 0 1px 0 color-mix(in oklch, white 8%, transparent),
+   240→      inset 0 -2px 4px color-mix(in oklch, black 25%, transparent);
+   241→  }
+   242→  .treasure-tile-watermark {
+   243→    position: absolute;
+   244→    inset: 0;
+   245→    display: flex;
+   246→    align-items: center;
+   247→    justify-content: center;
+   248→    pointer-events: none;
+   249→    opacity: 0.16;
+   250→    font-size: 1.05em;
+   251→    color: var(--muted-foreground);
+   252→    font-family: var(--font-display), serif;
+   253→    user-select: none;
+   254→  }
+   255→  .treasure-tile-revealable {
+   256→    background-image:
+   257→      radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--gold) 28%, transparent) 0, transparent 60%),
+   258→      radial-gradient(circle at 30% 25%, color-mix(in oklch, var(--gold) 14%, transparent) 0, transparent 50%),
+   259→      repeating-linear-gradient(
+   260→        135deg,
+   261→        color-mix(in oklch, var(--gold) 10%, transparent) 0,
+   262→        color-mix(in oklch, var(--gold) 10%, transparent) 1px,
+   263→        transparent 1px,
+   264→        transparent 4px
+   265→      );
+   266→    box-shadow:
+   267→      inset 0 1px 0 color-mix(in oklch, var(--gold) 40%, transparent),
+   268→      inset 0 -2px 6px color-mix(in oklch, var(--gold) 25%, transparent),
+   269→      0 0 14px color-mix(in oklch, var(--gold) 40%, transparent);
+   270→  }
+   271→  .treasure-tile-clickable {
+   272→    cursor: pointer;
+   273→    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+   274→  }
+   275→  .treasure-tile-clickable:hover {
+   276→    transform: translateY(-2px) scale(1.04);
+   277→    border-color: color-mix(in oklch, var(--gold) 65%, var(--border));
+   278→    box-shadow:
+   279→      inset 0 1px 0 color-mix(in oklch, white 10%, transparent),
+   280→      inset 0 -2px 4px color-mix(in oklch, black 25%, transparent),
+   281→      0 4px 12px color-mix(in oklch, var(--gold) 30%, transparent);
+   282→    z-index: 5;
+   283→  }
+   284→
+   285→  /* ---- Revealed cash squares: 3D coin ----------------------------------- */
+   286→  .coin-3d {
+   287→    background-image:
+   288→      radial-gradient(circle at 35% 30%, color-mix(in oklch, white 50%, transparent) 0, transparent 45%),
+   289→      radial-gradient(circle at 50% 60%, color-mix(in oklch, var(--gold) 25%, transparent) 0, transparent 60%);
+   290→    box-shadow:
+   291→      inset 0 1px 0 color-mix(in oklch, white 35%, transparent),
+   292→      inset 0 -2px 4px color-mix(in oklch, black 25%, transparent),
+   293→      0 2px 4px color-mix(in oklch, black 20%, transparent);
+   294→  }
+   295→  .coin-glow {
+   296→    box-shadow:
+   297→      inset 0 1px 0 color-mix(in oklch, white 45%, transparent),
+   298→      inset 0 -2px 4px color-mix(in oklch, black 20%, transparent),
+   299→      0 0 14px color-mix(in oklch, var(--gold) 60%, transparent),
+   300→      0 0 26px color-mix(in oklch, var(--gold) 35%, transparent);
+   301→  }
+   302→  .coin-shimmer {
+   303→    position: relative;
+   304→    overflow: hidden;
+   305→  }
+   306→  .coin-shimmer::after {
+   307→    content: '';
+   308→    position: absolute;
+   309→    inset: 0;
+   310→    background: linear-gradient(
+   311→      100deg,
+   312→      transparent 30%,
+   313→      color-mix(in oklch, white 75%, transparent) 50%,
+   314→      transparent 70%
+   315→    );
+   316→    background-size: 200% 100%;
+   317→    animation: shimmer-slide 2.4s linear infinite;
+   318→    pointer-events: none;
+   319→    mix-blend-mode: screen;
+   320→  }
+   321→
+   322→  /* ---- Power square auras ----------------------------------------------- */
+   323→  .power-aura-negative {
+   324→    box-shadow:
+   325→      inset 0 0 8px color-mix(in oklch, var(--destructive) 30%, transparent),
+   326→      0 0 14px color-mix(in oklch, var(--destructive) 35%, transparent);
+   327→    animation: power-menace 1.8s ease-in-out infinite;
+   328→  }
+   329→  .power-aura-defensive {
+   330→    box-shadow:
+   331→      inset 0 0 8px color-mix(in oklch, var(--ocean) 30%, transparent),
+   332→      0 0 14px color-mix(in oklch, var(--ocean) 40%, transparent);
+   333→    animation: power-ward 2.2s ease-in-out infinite;
+   334→  }
+   335→  .power-aura-epic {
+   336→    box-shadow:
+   337→      inset 0 0 8px color-mix(in oklch, var(--gold) 35%, transparent),
+   338→      0 0 16px color-mix(in oklch, var(--gold) 50%, transparent);
+   339→    animation: power-epic 2s ease-in-out infinite;
+   340→  }
+   341→
+   342→  /* ---- Reveal sparkle burst --------------------------------------------- */
+   343→  .sparkle-burst::before,
+   344→  .sparkle-burst::after {
+   345→    content: '';
+   346→    position: absolute;
+   347→    inset: 0;
+   348→    pointer-events: none;
+   349→    background-image:
+   350→      radial-gradient(circle at 50% 50%, color-mix(in oklch, white 80%, transparent) 0, transparent 18%),
+   351→      radial-gradient(circle at 20% 20%, color-mix(in oklch, var(--gold) 90%, transparent) 0, transparent 12%),
+   352→      radial-gradient(circle at 80% 80%, color-mix(in oklch, var(--gold) 90%, transparent) 0, transparent 12%),
+   353→      radial-gradient(circle at 80% 20%, color-mix(in oklch, white 70%, transparent) 0, transparent 10%),
+   354→      radial-gradient(circle at 20% 80%, color-mix(in oklch, white 70%, transparent) 0, transparent 10%);
+   355→    animation: sparkle-burst 0.7s ease-out forwards;
+   356→    opacity: 0;
+   357→  }
+   358→  .sparkle-burst::after {
+   359→    animation-delay: 0.18s;
+   360→  }
+   361→
+   362→  /* ---- MoneyPill variants ----------------------------------------------- */
+   363→  .money-at-risk {
+   364→    position: relative;
+   365→    animation: at-risk-pulse 2.2s ease-in-out infinite;
+   366→  }
+   367→  .money-banked {
+   368→    position: relative;
+   369→    background-image:
+   370→      radial-gradient(circle at 50% 35%, color-mix(in oklch, var(--ocean) 18%, transparent) 0, transparent 60%),
+   371→      repeating-linear-gradient(45deg, color-mix(in oklch, var(--ocean) 6%, transparent) 0, color-mix(in oklch, var(--ocean) 6%, transparent) 2px, transparent 2px, transparent 6px);
+   372→  }
+   373→  .money-flash-gain {
+   374→    animation: money-gain 0.7s ease-out;
+   375→  }
+   376→  .money-flash-loss {
+   377→    animation: money-loss 0.7s ease-out;
+   378→  }
+   379→
+   380→  /* ---- Pirate buttons --------------------------------------------------- */
+   381→  .btn-pirate {
+   382→    transition: transform 180ms ease, box-shadow 220ms ease, background-color 180ms ease, border-color 180ms ease;
+   383→  }
+   384→  .btn-pirate:not(:disabled):hover {
+   385→    transform: translateY(-1px);
+   386→    box-shadow: 0 6px 14px color-mix(in oklch, var(--gold) 18%, transparent), 0 2px 6px rgba(0, 0, 0, 0.2);
+   387→  }
+   388→  .btn-pirate:not(:disabled):active {
+   389→    transform: translateY(0) scale(0.97);
+   390→  }
+   391→  .btn-copy-ripple {
+   392→    position: relative;
+   393→    overflow: hidden;
+   394→  }
+   395→  .btn-copy-ripple::after {
+   396→    content: '';
+   397→    position: absolute;
+   398→    inset: 0;
+   399→    border-radius: inherit;
+   400→    background: radial-gradient(circle at center, color-mix(in oklch, var(--gold) 50%, transparent) 0, transparent 60%);
+   401→    transform: scale(0);
+   402→    opacity: 0;
+   403→    pointer-events: none;
+   404→  }
+   405→  .btn-copy-ripple.btn-copy-rippling::after {
+   406→    animation: copy-ripple 0.55s ease-out;
+   407→  }
+   408→
+   409→  /* ---- Power chip float (inventory) ------------------------------------- */
+   410→  .inventory-chip {
+   411→    animation: inventory-float 3.4s ease-in-out infinite;
+   412→  }
+   413→
+   414→  /* ---- Parchment scroll aesthetic --------------------------------------- */
+   415→  .parchment-scroll {
+   416→    background-image:
+   417→      radial-gradient(circle at 20% 10%, color-mix(in oklch, var(--gold) 7%, transparent) 0, transparent 45%),
+   418→      radial-gradient(circle at 80% 90%, color-mix(in oklch, var(--rust) 5%, transparent) 0, transparent 40%),
+   419→      repeating-linear-gradient(0deg, color-mix(in oklch, var(--muted-foreground) 4%, transparent) 0, color-mix(in oklch, var(--muted-foreground) 4%, transparent) 1px, transparent 1px, transparent 6px);
+   420→  }
+   421→  .activity-row-new {
+   422→    animation: activity-highlight 1.2s ease-out;
+   423→  }
+   424→
+   425→  /* ---- Dramatic coordinate display -------------------------------------- */
+   426→  .coord-dramatic {
+   427→    /* Light mode: darker gold for legibility, mild glow */
+   428→    color: var(--gold-ink);
+   429→    text-shadow:
+   430→      0 1px 2px rgba(40, 28, 6, 0.28),
+   431→      0 0 10px color-mix(in oklch, var(--gold-strong) 40%, transparent);
+   432→    animation: coord-glow-light 1.6s ease-in-out infinite;
+   433→  }
+   434→  .dark .coord-dramatic {
+   435→    color: var(--gold);
+   436→    text-shadow:
+   437→      0 0 8px color-mix(in oklch, var(--gold) 70%, transparent),
+   438→      0 0 18px color-mix(in oklch, var(--gold) 50%, transparent),
+   439→      0 2px 4px rgba(0, 0, 0, 0.4);
+   440→    animation: coord-glow 1.6s ease-in-out infinite;
+   441→  }
+   442→
+   443→  /* ---- Title styling ---------------------------------------------------- */
+   444→  .title-pirate {
+   445→    text-shadow:
+   446→      0 0 12px color-mix(in oklch, var(--gold) 40%, transparent),
+   447→      0 2px 4px rgba(0, 0, 0, 0.5),
+   448→      0 4px 8px color-mix(in oklch, var(--gold) 25%, transparent);
+   449→    animation: title-sway 7s ease-in-out infinite;
+   450→    transform-origin: 50% 80%;
+   451→  }
+   452→
+   453→  /* ---- Decorative divider ----------------------------------------------- */
+   454→  .divider-pirate {
+   455→    display: flex;
+   456→    align-items: center;
+   457→    justify-content: center;
+   458→    gap: 0.75rem;
+   459→    color: color-mix(in oklch, var(--gold) 80%, transparent);
+   460→  }
+   461→  .divider-pirate::before,
+   462→  .divider-pirate::after {
+   463→    content: '';
+   464→    flex: 1;
+   465→    height: 1px;
+   466→    background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--gold) 50%, transparent), transparent);
+   467→    max-width: 80px;
+   468→  }
+   469→
+   470→  /* ---- Ocean waves at bottom of screen ---------------------------------- */
+   471→  .ocean-waves-bottom {
+   472→    position: absolute;
+   473→    left: 0;
+   474→    right: 0;
+   475→    bottom: 0;
+   476→    height: 64px;
+   477→    pointer-events: none;
+   478→    opacity: 0.55;
+   479→    background-image:
+   480→      radial-gradient(ellipse at 50% 100%, color-mix(in oklch, var(--ocean) 28%, transparent) 0, transparent 70%),
+   481→      repeating-linear-gradient(
+   482→        90deg,
+   483→        color-mix(in oklch, var(--ocean) 32%, transparent) 0,
+   484→        color-mix(in oklch, var(--ocean) 32%, transparent) 12px,
+   485→        transparent 12px,
+   486→        transparent 24px
+   487→      );
+   488→    background-size: auto, 240px 100%;
+   489→    background-position: center bottom, 0 0;
+   490→    animation: wave-sweep 6s linear infinite;
+   491→  }
+   492→  .ocean-waves-bottom::before {
+   493→    content: '';
+   494→    position: absolute;
+   495→    left: 0;
+   496→    right: 0;
+   497→    bottom: 0;
+   498→    height: 16px;
+   499→    background: linear-gradient(180deg, transparent, color-mix(in oklch, var(--ocean) 50%, transparent));
+   500→  }
+   501→
+   502→  /* ---- Ship sailing animation ------------------------------------------- */
+   503→  .ship-sail {
+   504→    animation: ship-bob 3.2s ease-in-out infinite;
+   505→    transform-origin: 50% 90%;
+   506→  }
+   507→
+   508→  /* ---- Map-pin bounce --------------------------------------------------- */
+   509→  .pin-bounce {
+   510→    animation: pin-bounce 1.4s ease-in-out infinite;
+   511→  }
+   512→
+   513→  /* ---- Treasure chest bob ----------------------------------------------- */
+   514→  .chest-bob {
+   515→    animation: chest-bob 2.8s ease-in-out infinite;
+   516→  }
+   517→
+   518→  /* ---- Leaderboard crown / medal animations ----------------------------- */
+   519→  /* 1st place — gold crown floats gently + gold glow */
+   520→  .crown-glow {
+   521→    color: var(--gold-strong);
+   522→    filter: drop-shadow(0 1px 2px rgba(40, 28, 6, 0.25))
+   523→            drop-shadow(0 0 6px color-mix(in oklch, var(--gold) 60%, transparent));
+   524→    animation: crown-float 2s ease-in-out infinite;
+   525→  }
+   526→  .dark .crown-glow {
+   527→    color: var(--gold);
+   528→    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5))
+   529→            drop-shadow(0 0 8px color-mix(in oklch, var(--gold) 75%, transparent));
+   530→  }
+   531→  /* 2nd + 3rd place — silver / bronze medals with a subtle shimmer sweep */
+   532→  .medal-silver {
+   533→    color: oklch(0.62 0.02 250);
+   534→    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+   535→    animation: medal-shimmer 2.4s ease-in-out infinite;
+   536→  }
+   537→  .dark .medal-silver {
+   538→    color: oklch(0.78 0.015 250);
+   539→    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+   540→  }
+   541→  .medal-bronze {
+   542→    color: oklch(0.55 0.09 55);
+   543→    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+   544→    animation: medal-shimmer 2.4s ease-in-out infinite 0.4s;
+   545→  }
+   546→  .dark .medal-bronze {
+   547→    color: oklch(0.7 0.12 55);
+   548→    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+   549→  }
+   550→
+   551→  /* ---- Podium spotlight (1st place) ------------------------------------- */
+   552→  .podium-spotlight {
+   553→    position: relative;
+   554→  }
+   555→  .podium-spotlight::before {
+   556→    content: '';
+   557→    position: absolute;
+   558→    left: 50%;
+   559→    top: -20%;
+   560→    width: 220%;
+   561→    height: 180%;
+   562→    transform: translateX(-50%);
+   563→    background: radial-gradient(
+   564→      ellipse at 50% 35%,
+   565→      color-mix(in oklch, var(--gold) 35%, transparent) 0%,
+   566→      color-mix(in oklch, var(--gold) 12%, transparent) 35%,
+   567→      transparent 70%
+   568→    );
+   569→    pointer-events: none;
+   570→    z-index: 0;
+   571→    animation: spotlight-pulse 3.2s ease-in-out infinite;
+   572→  }
+   573→  .dark .podium-spotlight::before {
+   574→    background: radial-gradient(
+   575→      ellipse at 50% 35%,
+   576→      color-mix(in oklch, var(--gold) 30%, transparent) 0%,
+   577→      color-mix(in oklch, var(--gold) 10%, transparent) 40%,
+   578→      transparent 75%
+   579→    );
+   580→  }
+   581→
+   582→  /* ---- Pulsing gold ring around 1st place avatar ----------------------- */
+   583→  .pulse-gold-ring {
+   584→    box-shadow:
+   585→      0 0 0 0 color-mix(in oklch, var(--gold) 70%, transparent),
+   586→      0 0 14px color-mix(in oklch, var(--gold) 50%, transparent);
+   587→    animation: pulse-gold-ring 1.8s ease-out infinite;
+   588→  }
+   589→
+   590→  /* ---- Metallic rank labels (1ST / 2ND / 3RD) -------------------------- */
+   591→  .label-gold-metal,
+   592→  .label-silver-metal,
+   593→  .label-bronze-metal {
+   594→    background-clip: text;
+   595→    -webkit-background-clip: text;
+   596→    -webkit-text-fill-color: transparent;
+   597→    color: transparent;
+   598→    font-weight: 800;
+   599→    letter-spacing: 0.08em;
+   600→  }
+   601→  .label-gold-metal {
+   602→    background-image: linear-gradient(180deg,
+   603→      oklch(0.92 0.13 85) 0%,
+   604→      oklch(0.7 0.16 80) 45%,
+   605→      oklch(0.55 0.14 75) 70%,
+   606→      oklch(0.82 0.16 85) 100%);
+   607→  }
+   608→  .label-silver-metal {
+   609→    background-image: linear-gradient(180deg,
+   610→      oklch(0.92 0.01 250) 0%,
+   611→      oklch(0.7 0.015 250) 45%,
+   612→      oklch(0.5 0.02 250) 70%,
+   613→      oklch(0.82 0.01 250) 100%);
+   614→  }
+   615→  .label-bronze-metal {
+   616→    background-image: linear-gradient(180deg,
+   617→      oklch(0.8 0.1 65) 0%,
+   618→      oklch(0.62 0.11 55) 45%,
+   619→      oklch(0.45 0.09 50) 70%,
+   620→      oklch(0.72 0.11 55) 100%);
+   621→  }
+   622→
+   623→  /* ---- Confetti pieces for podium backdrop ------------------------------ */
+   624→  .confetti-piece {
+   625→    position: absolute;
+   626→    top: -16px;
+   627→    width: 8px;
+   628→    height: 14px;
+   629→    border-radius: 2px;
+   630→    opacity: 0;
+   631→    animation: confetti-fall linear infinite;
+   632→    pointer-events: none;
+   633→    will-change: transform, opacity;
+   634→  }
+   635→
+   636→  /* ---- Board reveal sweep (screen-edge gold flash from board outward) --- */
+   637→  .board-reveal-flash::after {
+   638→    content: '';
+   639→    position: absolute;
+   640→    inset: -12px;
+   641→    pointer-events: none;
+   642→    border-radius: inherit;
+   643→    background: radial-gradient(
+   644→      ellipse at center,
+   645→      color-mix(in oklch, var(--gold) 50%, transparent) 0%,
+   646→      color-mix(in oklch, var(--gold) 18%, transparent) 35%,
+   647→      transparent 70%
+   648→    );
+   649→    opacity: 0;
+   650→    animation: reveal-sweep 0.7s ease-out forwards;
+   651→    z-index: 2;
+   652→  }
+   653→
+   654→  /* ---- Board cell hover tooltip (CSS-only) ------------------------------ */
+   655→  .cell-tooltip {
+   656→    position: relative;
+   657→  }
+   658→  /* When the tooltip is visible, allow overflow so the ::before (positioned
+   659→     above the cell) isn't clipped by the cell's overflow-hidden utility.
+   660→     Higher-specificity selector beats .overflow-hidden (0,1,0). */
+   661→  .cell-tooltip[data-coord]:hover,
+   662→  .cell-tooltip[data-coord]:focus-visible {
+   663→    overflow: visible !important;
+   664→  }
+   665→  .cell-tooltip[data-coord]:hover::before,
+   666→  .cell-tooltip[data-coord]:focus-visible::before {
+   667→    content: attr(data-coord);
+   668→    position: absolute;
+   669→    bottom: calc(100% + 4px);
+   670→    left: 50%;
+   671→    transform: translateX(-50%) translateY(2px);
+   672→    background: color-mix(in oklch, var(--card) 92%, transparent);
+   673→    color: var(--gold-strong);
+   674→    border: 1px solid color-mix(in oklch, var(--gold) 50%, var(--border));
+   675→    border-radius: 6px;
+   676→    padding: 2px 6px;
+   677→    font-size: 10px;
+   678→    font-family: var(--font-mono), monospace;
+   679→    font-weight: 700;
+   680→    line-height: 1.2;
+   681→    white-space: nowrap;
+   682→    pointer-events: none;
+   683→    z-index: 50;
+   684→    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+   685→    opacity: 0;
+   686→    animation: tooltip-pop 0.16s ease-out forwards;
+   687→  }
+   688→  .dark .cell-tooltip[data-coord]:hover::before,
+   689→  .dark .cell-tooltip[data-coord]:focus-visible::before {
+   690→    color: var(--gold);
+   691→  }
+   692→  .cell-tooltip[data-content]:hover::before,
+   693→  .cell-tooltip[data-content]:focus-visible::before {
+   694→    content: attr(data-coord) ' · ' attr(data-content);
+   695→  }
+   696→
+   697→  /* ---- Spectator activity-row separators -------------------------------- */
+   698→  /* Uses inset box-shadow so it doesn't conflict with Tailwind tone-bg
+   699→     border utilities (those set border-color via the utilities layer). */
+   700→  .activity-row:not(:last-child) {
+   701→    box-shadow: inset 0 -1px 0 color-mix(in oklch, var(--muted-foreground) 12%, transparent);
+   702→  }
+   703→
+   704→  /* ---- Spectator "watching" panel --------------------------------------- */
+   705→  .watching-panel {
+   706→    background-image:
+   707→      radial-gradient(circle at 15% 0%, color-mix(in oklch, var(--ocean) 12%, transparent) 0, transparent 55%),
+   708→      radial-gradient(circle at 90% 100%, color-mix(in oklch, var(--ocean) 8%, transparent) 0, transparent 50%);
+   709→  }
+   710→  .watching-indicator {
+   711→    background: color-mix(in oklch, var(--ocean) 12%, transparent);
+   712→    border: 1px solid color-mix(in oklch, var(--ocean) 35%, transparent);
+   713→    color: var(--ocean);
+   714→  }
+   715→  .dark .watching-indicator {
+   716→    color: color-mix(in oklch, var(--ocean) 75%, white 25%);
+   717→  }
+   718→}
+   719→
+   720→/* --------------------------------------------------------------------------
+   721→   Animations
+   722→   -------------------------------------------------------------------------- */
+   723→
+   724→@keyframes shimmer-slide {
+   725→  0% { background-position: 200% 0; }
+   726→  100% { background-position: -200% 0; }
+   727→}
+   728→
+   729→@keyframes power-menace {
+   730→  0%, 100% {
+   731→    box-shadow:
+   732→      inset 0 0 8px color-mix(in oklch, var(--destructive) 30%, transparent),
+   733→      0 0 12px color-mix(in oklch, var(--destructive) 30%, transparent);
+   734→  }
+   735→  50% {
+   736→    box-shadow:
+   737→      inset 0 0 10px color-mix(in oklch, var(--destructive) 45%, transparent),
+   738→      0 0 22px color-mix(in oklch, var(--destructive) 55%, transparent);
+   739→  }
+   740→}
+   741→
+   742→@keyframes power-ward {
+   743→  0%, 100% {
+   744→    box-shadow:
+   745→      inset 0 0 8px color-mix(in oklch, var(--ocean) 30%, transparent),
+   746→      0 0 12px color-mix(in oklch, var(--ocean) 35%, transparent);
+   747→  }
+   748→  50% {
+   749→    box-shadow:
+   750→      inset 0 0 10px color-mix(in oklch, var(--ocean) 45%, transparent),
+   751→      0 0 20px color-mix(in oklch, var(--ocean) 55%, transparent);
+   752→  }
+   753→}
+   754→
+   755→@keyframes power-epic {
+   756→  0%, 100% {
+   757→    box-shadow:
+   758→      inset 0 0 8px color-mix(in oklch, var(--gold) 35%, transparent),
+   759→      0 0 14px color-mix(in oklch, var(--gold) 45%, transparent);
+   760→  }
+   761→  50% {
+   762→    box-shadow:
+   763→      inset 0 0 12px color-mix(in oklch, var(--gold) 55%, transparent),
+   764→      0 0 26px color-mix(in oklch, var(--gold) 65%, transparent);
+   765→  }
+   766→}
+   767→
+   768→@keyframes sparkle-burst {
+   769→  0% { transform: scale(0.4); opacity: 0; }
+   770→  35% { opacity: 1; }
+   771→  100% { transform: scale(1.8); opacity: 0; }
+   772→}
+   773→
+   774→@keyframes at-risk-pulse {
+   775→  0%, 100% {
+   776→    box-shadow:
+   777→      inset 0 0 0 1px color-mix(in oklch, var(--gold) 50%, transparent),
+   778→      0 0 0 0 color-mix(in oklch, var(--rust) 0%, transparent);
+   779→  }
+   780→  50% {
+   781→    box-shadow:
+   782→      inset 0 0 0 1px color-mix(in oklch, var(--gold) 80%, transparent),
+   783→      0 0 0 4px color-mix(in oklch, var(--rust) 25%, transparent);
+   784→  }
+   785→}
+   786→
+   787→@keyframes money-gain {
+   788→  0% { transform: scale(1); background-color: color-mix(in oklch, var(--gold) 5%, transparent); }
+   789→  20% {
+   790→    transform: scale(1.1);
+   791→    background-color: color-mix(in oklch, var(--gold) 42%, transparent);
+   792→    box-shadow: 0 0 18px color-mix(in oklch, var(--gold) 65%, transparent);
+   793→    color: var(--gold-ink);
+   794→  }
+   795→  100% { transform: scale(1); background-color: transparent; }
+   796→}
+   797→.dark .money-flash-gain {
+   798→  /* keep the same keyframe, but the dark theme gold token renders brighter */
+   799→}
+   800→
+   801→@keyframes money-loss {
+   802→  0% { transform: scale(1); background-color: color-mix(in oklch, var(--destructive) 5%, transparent); }
+   803→  20% {
+   804→    transform: scale(0.92);
+   805→    background-color: color-mix(in oklch, var(--destructive) 38%, transparent);
+   806→    box-shadow: 0 0 18px color-mix(in oklch, var(--destructive) 60%, transparent);
+   807→  }
+   808→  100% { transform: scale(1); background-color: transparent; }
+   809→}
+   810→
+   811→@keyframes copy-ripple {
+   812→  0% { transform: scale(0); opacity: 0.9; }
+   813→  100% { transform: scale(2.6); opacity: 0; }
+   814→}
+   815→
+   816→@keyframes inventory-float {
+   817→  0%, 100% { transform: translateY(0); }
+   818→  50% { transform: translateY(-3px); }
+   819→}
+   820→
+   821→@keyframes activity-highlight {
+   822→  0% { background-color: color-mix(in oklch, var(--gold) 35%, transparent); }
+   823→  100% { background-color: transparent; }
+   824→}
+   825→
+   826→@keyframes coord-glow {
+   827→  0%, 100% {
+   828→    text-shadow:
+   829→      0 0 8px color-mix(in oklch, var(--gold) 70%, transparent),
+   830→      0 0 18px color-mix(in oklch, var(--gold) 50%, transparent),
+   831→      0 2px 4px rgba(0, 0, 0, 0.4);
+   832→  }
+   833→  50% {
+   834→    text-shadow:
+   835→      0 0 14px color-mix(in oklch, var(--gold) 90%, transparent),
+   836→      0 0 28px color-mix(in oklch, var(--gold) 70%, transparent),
+   837→      0 2px 4px rgba(0, 0, 0, 0.4);
+   838→  }
+   839→}
+   840→
+   841→/* Light-mode version: gentler, uses dark drop-shadow for contrast */
+   842→@keyframes coord-glow-light {
+   843→  0%, 100% {
+   844→    text-shadow:
+   845→      0 1px 2px rgba(40, 28, 6, 0.28),
+   846→      0 0 10px color-mix(in oklch, var(--gold-strong) 40%, transparent);
+   847→  }
+   848→  50% {
+   849→    text-shadow:
+   850→      0 1px 2px rgba(40, 28, 6, 0.32),
+   851→      0 0 16px color-mix(in oklch, var(--gold) 60%, transparent);
+   852→  }
+   853→}
+   854→
+   855→@keyframes crown-float {
+   856→  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+   857→  50% { transform: translateY(-3px) rotate(1.5deg); }
+   858→}
+   859→
+   860→@keyframes medal-shimmer {
+   861→  0%, 100% { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18)) brightness(1); }
+   862→  50% { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.22)) brightness(1.18); }
+   863→}
+   864→
+   865→@keyframes spotlight-pulse {
+   866→  0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
+   867→  50% { opacity: 1; transform: translateX(-50%) scale(1.04); }
+   868→}
+   869→
+   870→@keyframes pulse-gold-ring {
+   871→  0% { box-shadow:
+   872→    0 0 0 0 color-mix(in oklch, var(--gold) 70%, transparent),
+   873→    0 0 14px color-mix(in oklch, var(--gold) 50%, transparent); }
+   874→  70% { box-shadow:
+   875→    0 0 0 12px transparent,
+   876→    0 0 14px color-mix(in oklch, var(--gold) 30%, transparent); }
+   877→  100% { box-shadow:
+   878→    0 0 0 0 transparent,
+   879→    0 0 14px color-mix(in oklch, var(--gold) 50%, transparent); }
+   880→}
+   881→
+   882→@keyframes confetti-fall {
+   883→  0% { transform: translateY(-16px) rotateZ(0deg); opacity: 0; }
+   884→  10% { opacity: 1; }
+   885→  90% { opacity: 1; }
+   886→  100% { transform: translateY(420px) rotateZ(540deg); opacity: 0; }
+   887→}
+   888→
+   889→@keyframes reveal-sweep {
+   890→  0% { opacity: 0; transform: scale(0.92); }
+   891→  25% { opacity: 0.85; }
+   892→  100% { opacity: 0; transform: scale(1.25); }
+   893→}
+   894→
+   895→@keyframes tooltip-pop {
+   896→  0% { opacity: 0; transform: translateX(-50%) translateY(2px); }
+   897→  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+   898→}
+   899→
+   900→@keyframes title-sway {
+   901→  0%, 100% { transform: rotate(-1.2deg) translateY(0); }
+   902→  50% { transform: rotate(1.2deg) translateY(-2px); }
+   903→}
+   904→
+   905→@keyframes wave-sweep {
+   906→  0% { background-position: center bottom, 0 0; }
+   907→  100% { background-position: center bottom, -240px 0; }
+   908→}
+   909→
+   910→@keyframes ship-bob {
+   911→  0%, 100% { transform: translateY(0) rotate(-2deg); }
+   912→  25% { transform: translateY(-4px) rotate(1deg); }
+   913→  50% { transform: translateY(-7px) rotate(2deg); }
+   914→  75% { transform: translateY(-4px) rotate(-1deg); }
+   915→}
+   916→
+   917→@keyframes pin-bounce {
+   918→  0%, 100% { transform: translateY(0); }
+   919→  30% { transform: translateY(-6px); }
+   920→  60% { transform: translateY(0); }
+   921→}
+   922→
+   923→@keyframes chest-bob {
+   924→  0%, 100% { transform: translateY(0) rotate(-1deg); }
+   925→  50% { transform: translateY(-6px) rotate(1deg); }
+   926→}
+   927→
+   928→@keyframes float-slow {
+   929→  0%, 100% { transform: translateY(0) rotate(0deg); }
+   930→  50% { transform: translateY(-10px) rotate(2deg); }
+   931→}
+   932→.animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+   933→
+   934→@keyframes float-coin {
+   935→  0% { transform: translateY(0) rotateY(0deg); opacity: 1; }
+   936→  100% { transform: translateY(-120px) rotateY(720deg); opacity: 0; }
+   937→}
+   938→.animate-coin-fly { animation: float-coin 1.1s ease-out forwards; }
+   939→
+   940→@keyframes shake-x {
+   941→  0%, 100% { transform: translateX(0); }
+   942→  20% { transform: translateX(-8px); }
+   943→  40% { transform: translateX(8px); }
+   944→  60% { transform: translateX(-6px); }
+   945→  80% { transform: translateX(6px); }
+   946→}
+   947→.animate-shake { animation: shake-x 0.5s ease-in-out; }
+   948→
+   949→@keyframes splash {
+   950→  0% { transform: scale(0.4); opacity: 0.9; }
+   951→  60% { transform: scale(1.4); opacity: 0.7; }
+   952→  100% { transform: scale(2.2); opacity: 0; }
+   953→}
+   954→.animate-splash { animation: splash 0.9s ease-out forwards; }
+   955→
+   956→@keyframes flame-flicker {
+   957→  0%, 100% { transform: scale(1) rotate(-2deg); opacity: 1; }
+   958→  25% { transform: scale(1.08) rotate(2deg); opacity: 0.92; }
+   959→  50% { transform: scale(0.96) rotate(-1deg); opacity: 1; }
+   960→  75% { transform: scale(1.05) rotate(3deg); opacity: 0.95; }
+   961→}
+   962→.animate-flame { animation: flame-flicker 0.6s ease-in-out infinite; }
+   963→
+   964→@keyframes shield-pulse {
+   965→  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--ocean) 50%, transparent); }
+   966→  50% { box-shadow: 0 0 0 12px transparent; }
+   967→}
+   968→.animate-shield-pulse { animation: shield-pulse 1.4s ease-out infinite; }
+   969→
+   970→@keyframes mirror-gleam {
+   971→  0% { transform: translateX(-120%) skewX(-20deg); }
+   972→  100% { transform: translateX(220%) skewX(-20deg); }
+   973→}
+   974→.mirror-gleam::after {
+   975→  content: '';
+   976→  position: absolute;
+   977→  inset: 0;
+   978→  background: linear-gradient(90deg, transparent, color-mix(in oklch, white 55%, transparent), transparent);
+   979→  animation: mirror-gleam 1.4s ease-in-out;
+   980→}
+   981→
+   982→@keyframes anchor-drop {
+   983→  0% { transform: translateY(-60px) rotate(-25deg); opacity: 0; }
+   984→  60% { transform: translateY(8px) rotate(8deg); opacity: 1; }
+   985→  80% { transform: translateY(-4px) rotate(-3deg); }
+   986→  100% { transform: translateY(0) rotate(0deg); }
+   987→}
+   988→.animate-anchor-drop { animation: anchor-drop 0.8s cubic-bezier(0.3, 1.4, 0.5, 1) forwards; }
+   989→
+   990→@keyframes pulse-ring {
+   991→  0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--gold) 70%, transparent); }
+   992→  70% { box-shadow: 0 0 0 14px transparent; }
+   993→  100% { box-shadow: 0 0 0 0 transparent; }
+   994→}
+   995→.animate-pulse-ring { animation: pulse-ring 1.6s ease-out infinite; }
+   996→
+   997→@keyframes podium-rise {
+   998→  0% { transform: translateY(40px); opacity: 0; }
+   999→  100% { transform: translateY(0); opacity: 1; }
+  1000→}
+  1001→.animate-podium-rise { animation: podium-rise 0.6s cubic-bezier(0.2, 1, 0.4, 1) forwards; }
+  1002→
+  1003→@keyframes wave {
+  1004→  0% { background-position: 0 0; }
+  1005→  100% { background-position: 200px 0; }
+  1006→}
+  1007→.ocean-waves {
+  1008→  background-image: repeating-linear-gradient(
+  1009→    90deg,
+  1010→    color-mix(in oklch, var(--ocean) 30%, transparent) 0,
+  1011→    color-mix(in oklch, var(--ocean) 30%, transparent) 10px,
+  1012→    transparent 10px,
+  1013→    transparent 20px
+  1014→  );
+  1015→  animation: wave 3s linear infinite;
+  1016→}
+  1017→
+  1018→/* reduced motion */
+  1019→@media (prefers-reduced-motion: reduce) {
+  1020→  *, *::before, *::after {
+  1021→    animation-duration: 0.001ms !important;
+  1022→    animation-iteration-count: 1 !important;
+  1023→    transition-duration: 0.001ms !important;
+  1024→  }
+  1025→}
+  1026→

@@ -40,7 +40,7 @@ import {
   StatusDot,
 } from '@/components/pirate/common';
 import { EmoteBar } from '@/components/pirate/EmoteBar';
-import { ChatPanel } from '@/components/pirate/ChatPanel';
+
 import {
   formatMoney,
   type ActivityEvent,
@@ -181,8 +181,7 @@ function SpectatorInner({ state }: { state: SpectatorGameState }) {
 
       {/* Quick reactions — spectators can cheer/jeer along with the game. */}
       <EmoteBar />
-      <ChatPanel />
-    </div>
+      </div>
   );
 }
 

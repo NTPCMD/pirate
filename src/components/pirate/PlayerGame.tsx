@@ -36,7 +36,7 @@ import {
   powerTextClass,
 } from '@/components/pirate/common';
 import { EmoteBar } from '@/components/pirate/EmoteBar';
-import { ChatPanel } from '@/components/pirate/ChatPanel';
+
 import {
   Dialog,
   DialogContent,
@@ -1048,7 +1048,6 @@ export default function PlayerGame() {
 
       {/* --- Quick reactions (floating emoji palette) --- */}
       <EmoteBar />
-      <ChatPanel />
-    </div>
+      </div>
   );
 }
