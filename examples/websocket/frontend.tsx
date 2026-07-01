@@ -38,7 +38,7 @@ export default function SocketDemo() {
   {
     transports: ["websocket", "polling"],
   }
-);
+  );
 
     setSocket(socketInstance);
 
