@@ -544,7 +544,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = 3003;
+const PORT = Number(process.env.SOCKET_PORT || 3003);
 httpServer.listen(PORT, () => {
   console.log(`[pirate] Pirate Game socket server running on port ${PORT}`);
 });
