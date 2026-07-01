@@ -9,19 +9,24 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (socket) return socket;
-  socket = io({
-    path: '/',
-    transports: ['polling', 'websocket'],
+
+  const rawSocketUrl =
+    process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3003';
+
+  const socketUrl = rawSocketUrl.startsWith('http')
+    ? rawSocketUrl
+    : `https://${rawSocketUrl}`;
+
+  socket = io(socketUrl, {
+    transports: ['websocket', 'polling'],
     forceNew: true,
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 800,
     reconnectionDelayMax: 4000,
     timeout: 10000,
-    query: {
-      XTransformPort: '3003',
-    },
   });
+
   return socket;
 }
 
