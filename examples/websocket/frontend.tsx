@@ -33,12 +33,16 @@ export default function SocketDemo() {
     // Connect to websocket server
     // Never use PORT in the URL, alyways use XTransformPort
     // DO NOT change the path, it is used by Caddy to forward the request to the correct port
-  const socketInstance = io(
-  process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3003",
-  {
-    transports: ["websocket", "polling"],
-  }
-  );
+    const rawSocketUrl =
+      process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3003';
+
+    const socketUrl = rawSocketUrl.startsWith('http')
+      ? rawSocketUrl
+      : `https://${rawSocketUrl}`;
+
+    const socketInstance = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+    });
 
     setSocket(socketInstance);
 
