@@ -284,8 +284,11 @@ function TargetSelectionModal({
 }) {
   if (!power) return null;
   const meta = POWERS[power];
-  // Sort rivals by running total descending — strategic context (anchor the richest, etc.)
-  const sortedRivals = [...rivals].sort((a, b) => b.runningTotal - a.runningTotal);
+  const hideTotals = power === 'swap' || power === 'anchor' || power === 'fire';
+  // Only sort by money when the totals are allowed to be shown.
+  const sortedRivals = hideTotals
+    ? [...rivals].sort((a, b) => a.name.localeCompare(b.name))
+    : [...rivals].sort((a, b) => b.runningTotal - a.runningTotal);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !busy && onClose()}>
@@ -327,7 +330,11 @@ function TargetSelectionModal({
                 type="button"
                 disabled={busy || !r.connected}
                 onClick={() => onSelect(r.id, r.name)}
-                aria-label={`Target ${r.name} who has ${formatMoney(r.runningTotal)} at risk`}
+                aria-label={
+                  hideTotals
+                    ? `Target ${r.name}. Totals hidden until the action resolves.`
+                    : `Target ${r.name} who has ${formatMoney(r.runningTotal)} at risk`
+                }
                 className={cn(
                   'flex items-center justify-between gap-2 rounded-lg border border-border/70 bg-card/60 px-3 py-2.5 text-left transition-colors',
                   'hover:bg-accent/60 hover:border-gold/40 disabled:opacity-50 disabled:cursor-not-allowed',
@@ -347,13 +354,21 @@ function TargetSelectionModal({
                     </div>
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <div className="text-sm font-mono font-semibold text-gold">
-                    {formatMoney(r.runningTotal)}
-                  </div>
-                  <div className="text-[10px] text-ocean">
-                    banked {formatMoney(r.bankedTotal)}
-                  </div>
+                <div className="text-right shrink-0 min-w-[4.5rem]">
+                  {hideTotals ? (
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Hidden until chosen
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-sm font-mono font-semibold text-gold">
+                        {formatMoney(r.runningTotal)}
+                      </div>
+                      <div className="text-[10px] text-ocean">
+                        banked {formatMoney(r.bankedTotal)}
+                      </div>
+                    </>
+                  )}
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
               </button>

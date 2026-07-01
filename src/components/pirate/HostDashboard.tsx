@@ -230,12 +230,17 @@ export default function HostDashboard() {
 
 function DashboardInner() {
   const [inspectingId, setInspectingId] = useState<string | null>(null);
+  const [publicFeedMode, setPublicFeedMode] = useState(false);
   // Refresh relative timestamps every 30s.
   useNow(30_000);
 
+  if (publicFeedMode) {
+    return <PublicFeedScreen onBack={() => setPublicFeedMode(false)} />;
+  }
+
   return (
     <div className="min-h-[calc(100vh-3rem)] flex flex-col">
-      <TopControlBar />
+      <TopControlBar onPresentPublicFeed={() => setPublicFeedMode(true)} />
 
       <div className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6">
         {/* Mobile tabs */}
@@ -303,7 +308,7 @@ function DashboardInner() {
 // Top control bar (sticky)
 // ============================================================================
 
-function TopControlBar() {
+function TopControlBar({ onPresentPublicFeed }: { onPresentPublicFeed: () => void }) {
   const hostState = useGameStore((s) => s.hostState)!;
   const code = useGameStore((s) => s.code);
   const pauseGame = useGameStore((s) => s.pauseGame);
@@ -493,6 +498,9 @@ function TopControlBar() {
           )}
 
           <Separator orientation="vertical" className="h-6 mx-0.5" />
+          <Button size="sm" variant="outline" className="btn-pirate" onClick={onPresentPublicFeed}>
+            <Eye className="h-4 w-4" /> Public Feed
+          </Button>
           <Button
             size="sm"
             variant="ghost"
@@ -505,6 +513,77 @@ function TopControlBar() {
         </div>
       </div>
     </header>
+  );
+}
+
+function PublicFeedScreen({ onBack }: { onBack: () => void }) {
+  const hostState = useGameStore((s) => s.hostState)!;
+  const code = useGameStore((s) => s.code);
+  const { play } = useSound();
+  const currentCoord = hostState.currentCoord;
+
+  const handleCopy = async () => {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      play('click');
+    } catch {}
+  };
+
+  return (
+    <div className="min-h-[calc(100vh-3rem)] flex flex-col bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 flex flex-wrap items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="font-mono text-base px-2.5 py-1 rounded-md border border-gold/40 text-gold bg-gold/5 hover:bg-gold/10 transition-colors"
+            aria-label={`Game code ${code ?? ''} — click to copy`}
+          >
+            {code ?? '------'}
+          </button>
+          <Badge variant="outline" className="border-ocean/40 text-ocean bg-ocean/10 gap-1">
+            <Eye className="h-3 w-3" /> PUBLIC FEED
+          </Badge>
+          <Badge variant="outline" className={cn('uppercase tracking-wide text-xs', STATUS_BADGE_CLASS[hostState.status])}>
+            {STATUS_LABEL[hostState.status]}
+          </Badge>
+          <div className="flex items-center gap-1.5 ml-1 sm:ml-2">
+            <MapPin className="h-4 w-4 text-gold pin-bounce" />
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground hidden sm:inline">
+              Now
+            </span>
+            <span className={cn('text-2xl sm:text-3xl font-bold text-gold display-font tabular-nums min-w-[2.5rem] text-center', currentCoord && 'coord-dramatic')} aria-live="polite">
+              {currentCoord ?? '—'}
+            </span>
+          </div>
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            {(hostState.spectatorCount ?? 0) > 0 && (
+              <Badge variant="outline" className="gap-1 text-xs border-ocean/40 text-ocean bg-ocean/10">
+                <Eye className="h-3 w-3" /> {hostState.spectatorCount} watching
+              </Badge>
+            )}
+            <Button size="sm" variant="outline" className="btn-pirate" onClick={onBack}>
+              <RotateCcw className="h-4 w-4" /> Back to dashboard
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+        <Card className="pirate-card p-5 sm:p-6 text-center">
+          <div className="display-font text-3xl sm:text-4xl text-gold mb-2">Live Event Log</div>
+          <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+            This view is meant for screensharing. It shows the current call and the running event log,
+            without the admin controls, player totals, or backend panels.
+          </p>
+        </Card>
+
+        <ActivityFeedPanel />
+      </div>
+
+      <EmoteBar />
+    </div>
   );
 }
 
