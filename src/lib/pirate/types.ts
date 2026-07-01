@@ -440,6 +440,7 @@ export const CLIENT_EVENTS = {
   playerSetReady: 'player:set-ready',
   playerJoin: 'player:join',
   playerReveal: 'player:reveal',
+  playerSubmitTally: 'player:submit-tally',
   playerSelectTarget: 'player:select-target',
   playerDefenseChoice: 'player:defense-choice',
   playerUseInventory: 'player:use-inventory',

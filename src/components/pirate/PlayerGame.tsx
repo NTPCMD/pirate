@@ -47,6 +47,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   POWERS,
   formatMoney,
@@ -176,6 +177,25 @@ function AnimatedValue({ value }: { value: number }) {
   );
 }
 
+function AnimatedCount({ value }: { value: number }) {
+  return (
+    <span className="relative inline-block tabular-nums">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.span
+          key={value}
+          initial={{ opacity: 0, y: -10, scale: 0.7 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 10, scale: 0.7 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="inline-block"
+        >
+          {new Intl.NumberFormat().format(value)}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
 // Money stat card with tone + animated value
 type MoneyStatVariant = 'at-risk' | 'banked' | 'default';
 
@@ -186,6 +206,7 @@ function MoneyStat({
   icon,
   hint,
   variant = 'default',
+  format = 'money',
 }: {
   label: string;
   value: number;
@@ -193,6 +214,7 @@ function MoneyStat({
   icon: React.ReactNode;
   hint?: string;
   variant?: MoneyStatVariant;
+  format?: 'money' | 'count';
 }) {
   const toneClass = {
     default: 'bg-secondary/60 text-foreground border-border',
@@ -234,7 +256,7 @@ function MoneyStat({
       <div className="text-lg sm:text-xl font-bold font-mono tabular-nums flex items-center gap-1">
         {variant === 'at-risk' && <Coins className="h-3.5 w-3.5 text-gold/80 shrink-0" />}
         {variant === 'banked' && <Lock className="h-3.5 w-3.5 text-ocean/80 shrink-0" />}
-        <AnimatedValue value={value} />
+        {format === 'count' ? <AnimatedCount value={value} /> : <AnimatedValue value={value} />}
       </div>
       {hint && <div className="text-[10px] opacity-70 truncate">{hint}</div>}
     </div>
@@ -526,6 +548,7 @@ export default function PlayerGame() {
   const selectTarget = useGameStore((s) => s.selectTarget);
   const resolveDefense = useGameStore((s) => s.resolveDefense);
   const pushToast = useGameStore((s) => s.pushToast);
+  const submitTally = useGameStore((s) => s.submitTally);
   const { play } = useSound();
 
   const [pendingTargetPower, setPendingTargetPower] = useState<PowerType | null>(
@@ -533,6 +556,9 @@ export default function PlayerGame() {
   );
   const [selectingTarget, setSelectingTarget] = useState(false);
   const [resolving, setResolving] = useState(false);
+  const [tallyGuess, setTallyGuess] = useState('');
+  const [tallyChecking, setTallyChecking] = useState(false);
+  const [tallyResult, setTallyResult] = useState<null | { verdict: 'correct' | 'wrong'; key: string }>(null);
   // Board reveal flash — toggles a brief gold sweep behind the board whenever
   // a square transitions from hidden → revealed on the player's own board.
   const [boardFlashKey, setBoardFlashKey] = useState(0);
@@ -552,6 +578,33 @@ export default function PlayerGame() {
       setBoardFlashKey((k) => k + 1);
     }
   }, [boardForFlash]);
+
+  const tallySnapshotKey = `${playerState?.me.stats.moneyFound ?? 0}:${playerState?.me.stats.cashSquaresFound ?? 0}`;
+
+  const handleSubmitTally = useCallback(async () => {
+    const guess = Number.parseInt(tallyGuess, 10);
+    if (!Number.isFinite(guess) || guess < 0) {
+      pushToast({ title: 'Enter a valid total', tone: 'bad' });
+      return;
+    }
+    setTallyChecking(true);
+    const result = await submitTally(guess);
+    setTallyChecking(false);
+    if (result.error) {
+      pushToast({ title: result.error, tone: 'bad' });
+      play('error');
+      return;
+    }
+    if (result.correct) {
+      setTallyResult({ verdict: 'correct', key: tallySnapshotKey });
+      pushToast({ title: 'Correct tally', description: 'You added up the cash right.', tone: 'good' });
+      play('win');
+      return;
+    }
+    setTallyResult({ verdict: 'wrong', key: tallySnapshotKey });
+    pushToast({ title: 'Not quite', description: 'Double-check the amounts you found.', tone: 'bad' });
+    play('error');
+  }, [play, pushToast, submitTally, tallyGuess, tallySnapshotKey]);
 
   // --- Build revealable coords set -----------------------------------------
   const board = playerState?.me.board;
@@ -657,9 +710,9 @@ export default function PlayerGame() {
   const rivals = playerState.rivals;
   const status = playerState.status;
   const locked = playerState.locked;
-  const finalScore = me.bankedTotal + me.runningTotal;
   const boardDisabled = status !== 'playing' || locked;
   const recentHistory = me.history.slice(0, 10); // engine unshifts — newest first
+  const tallyResultState = tallyResult?.key === tallySnapshotKey ? tallyResult.verdict : null;
 
   return (
     <div className="min-h-[calc(100vh-3rem)] flex flex-col gap-4 p-3 sm:p-4 max-w-7xl mx-auto w-full">
@@ -789,12 +842,13 @@ export default function PlayerGame() {
         className="grid grid-cols-3 gap-2 sm:gap-3"
       >
         <MoneyStat
-          label="At Risk"
-          value={me.runningTotal}
+          label="Cash Finds"
+          value={me.stats.cashSquaresFound}
           tone="gold"
           icon={<Coins className="h-3 w-3" />}
-          hint="Running total"
+          hint="Add the amounts yourself"
           variant="at-risk"
+          format="count"
         />
         <MoneyStat
           label="Banked"
@@ -804,13 +858,52 @@ export default function PlayerGame() {
           hint="Safe forever"
           variant="banked"
         />
-        <MoneyStat
-          label="Score"
-          value={finalScore}
-          tone="default"
-          icon={<Trophy className="h-3 w-3" />}
-          hint="Banked + at risk"
-        />
+        <div className="rounded-xl border border-border bg-card/60 p-3 sm:p-4 flex flex-col justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide opacity-80">
+            <Trophy className="h-3 w-3 text-gold" />
+            <span className="truncate">Check Tally</span>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              placeholder="Your total"
+              value={tallyGuess}
+              onChange={(e) => setTallyGuess(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void handleSubmitTally();
+              }}
+              className="h-10"
+            />
+            <Button
+              type="button"
+              size="sm"
+              className="h-10 shrink-0 btn-pirate"
+              onClick={() => void handleSubmitTally()}
+              disabled={tallyChecking}
+            >
+              {tallyChecking ? 'Checking…' : 'Check'}
+            </Button>
+          </div>
+          <div
+            className={cn(
+              'text-[10px] font-medium',
+              tallyResultState === 'correct'
+                ? 'text-emerald-500'
+                : tallyResultState === 'wrong'
+                  ? 'text-red-500'
+                  : 'text-muted-foreground',
+            )}
+          >
+            {tallyResultState === 'correct'
+              ? 'That tally is correct.'
+              : tallyResultState === 'wrong'
+                ? 'That tally is off.'
+                : 'Enter the total of the cash you found.'}
+          </div>
+        </div>
       </section>
 
       {/* --- Main grid: board+inventory left, activity+rivals right --- */}

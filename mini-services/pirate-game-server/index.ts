@@ -454,6 +454,14 @@ io.on('connection', (socket) => {
     broadcastState(s.code);
   });
 
+  socket.on(CLIENT_EVENTS.playerSubmitTally, (p: { code?: string; guess?: number }, ack?: (r: any) => void) => {
+    const s = store.getGame((p?.code ?? '').trim().toUpperCase());
+    if (!s) return ack?.({ error: 'Game not found' });
+    const r = store.checkTallyGuess(s, socket.id, Number(p?.guess));
+    if (r.error) return ack?.({ error: r.error });
+    ack?.({ ok: true, correct: r.correct });
+  });
+
   socket.on(CLIENT_EVENTS.playerSelectTarget, (p: { code?: string; powerType?: PowerType; targetId?: string }, ack?: (r: any) => void) => {
     if (rateLimited(socket.id)) return ack?.({ error: 'Too fast' });
     const s = store.getGame((p?.code ?? '').trim().toUpperCase());

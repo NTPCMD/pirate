@@ -56,6 +56,7 @@ interface GameStoreState {
   endGame: () => void;
   callCoordinate: (coord: string) => void;
   revealSquare: (coord: string) => Promise<{ ok?: boolean; error?: string }>;
+  submitTally: (guess: number) => Promise<{ ok?: boolean; correct?: boolean; error?: string }>;
   selectTarget: (powerType: PowerType, targetId: string) => Promise<{ ok?: boolean; pending?: boolean; resolved?: boolean; error?: string }>;
   resolveDefense: (promptId: string, choice: DefenseChoice) => Promise<{ ok?: boolean; error?: string }>;
   hostRevealAll: () => void;
@@ -320,6 +321,16 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     return new Promise((resolve) => {
       socket.emit(CLIENT_EVENTS.playerReveal, { code, coord }, (r: any) => {
         resolve(r?.error ? { error: r.error } : { ok: true });
+      });
+    });
+  },
+  submitTally: (guess) => {
+    const { code } = get();
+    if (!code) return Promise.resolve({ error: 'No game' });
+    const socket = getSocket();
+    return new Promise((resolve) => {
+      socket.emit(CLIENT_EVENTS.playerSubmitTally, { code, guess }, (r: any) => {
+        resolve(r?.error ? { error: r.error } : { ok: true, correct: !!r?.correct });
       });
     });
   },

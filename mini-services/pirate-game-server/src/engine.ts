@@ -1685,6 +1685,13 @@ export class GameStore {
     return { ok: true };
   }
 
+  checkTallyGuess(session: GameSession, playerId: string, guess: number) {
+    const player = session.players.get(playerId);
+    if (!player) return { error: 'Player not found' };
+    const safeGuess = Math.max(0, Math.floor(Number(guess) || 0));
+    return { correct: safeGuess === player.stats.moneyFound };
+  }
+
   revealSquareHost(session: GameSession, playerId: string, coord: string) {
     const p = session.players.get(playerId);
     if (!p) return { error: 'Player not found' };
